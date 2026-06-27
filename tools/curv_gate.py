@@ -90,7 +90,7 @@ def train(feat_csv,gate_json):
 def apply(gate_json,feat_csv,out_csv,thr=None):
     global FEATS
     gate=json.load(open(gate_json));FEATS=gate.get('feats',FEATS);thr=thr if thr is not None else gate.get('thr_rec100',0.5)
-    rows=list(csv.DictReader(open(feat_csv)));hdr=list(rows[0].keys())+['pgate','keep']
+    rdr=csv.DictReader(open(feat_csv));rows=list(rdr);hdr=list(rdr.fieldnames or [])+['pgate','keep']
     with open(out_csv,'w',newline='') as fo:
         wr=csv.writer(fo);wr.writerow(hdr);ok=0;cut=0
         for r in rows:

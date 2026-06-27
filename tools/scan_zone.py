@@ -95,12 +95,15 @@ def coh22(px,py,r_m=22):
     return math.sqrt((Jxx-Jyy)**2+4*Jxy*Jxy)/den if den>1e-12 else 0.0
 # lon/lat pt fiecare detectie
 lls=trans([(xll0+px*CS,ytop0-py*CS) for px,py,s in kept],"EPSG:3844","EPSG:4326")
-# gate curbura: scriu candidatii, chem curv_filter
-with open('/tmp/_zone_in.csv','w',newline='') as fo:
-    w=csv.writer(fo);w.writerow(['lon','lat'])
-    for lo,la in lls:w.writerow([lo,la])
-subprocess.run([sys.executable,f"{H}/tools/curv_filter.py","/tmp/_zone_in.csv","/tmp/_zone_gate.csv",f"{H}/curv_gate.json","0.70"],check=False)
-gate=list(csv.DictReader(open('/tmp/_zone_gate.csv')))
+# gate curbura: scriu candidatii, chem curv_filter (doar daca exista detectii)
+gate=[]
+if kept:
+    with open('/tmp/_zone_in.csv','w',newline='') as fo:
+        w=csv.writer(fo);w.writerow(['lon','lat'])
+        for lo,la in lls:w.writerow([lo,la])
+    subprocess.run([sys.executable,f"{H}/tools/curv_filter.py","/tmp/_zone_in.csv","/tmp/_zone_gate.csv",f"{H}/curv_gate.json","0.70"],check=False)
+    try:gate=list(csv.DictReader(open('/tmp/_zone_gate.csv')))
+    except FileNotFoundError:gate=[]
 rows=[]
 for (px,py,s),(lo,la),g in zip(kept,lls,gate):
     coh=coh22(px,py);pg=float(g['pgate']) if g['pgate']!='NA' else 1.0

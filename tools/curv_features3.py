@@ -123,11 +123,14 @@ def analyze(est,nord):
     return dict(prom=prom,gfit=gfit,fwhm_m=fwhm_m,sym=sym,convex=convex,rough=rough,slrm15=slrm15,slrm45=slrm45,mono=mono,relief_m=relief)
 FEATS=['prom','gfit','fwhm_m','sym','convex','rough','slrm15','slrm45','mono','relief_m']
 def main():
-    inp=sys.argv[1];outp=sys.argv[2];rows=list(csv.DictReader(open(inp)))
-    cols={c.lower():c for c in rows[0].keys()};lonc=cols.get('lon');latc=cols.get('lat')
+    inp=sys.argv[1];outp=sys.argv[2];rdr=csv.DictReader(open(inp));rows=list(rdr)
+    extra=list(rdr.fieldnames or ['lon','lat'])
+    if not rows:
+        with open(outp,'w',newline='') as fo:csv.writer(fo).writerow(extra+FEATS)
+        print("0 puncte -> doar antet",flush=True);return
+    cols={c.lower():c for c in extra};lonc=cols.get('lon');latc=cols.get('lat')
     pts=[(float(r[lonc]),float(r[latc])) for r in rows]
     print(f"{len(pts)} puncte; transform...",flush=True);st=trans_batch(pts,"EPSG:4326","EPSG:3844")
-    extra=list(rows[0].keys())
     with open(outp,'w',newline='') as fo:
         wr=csv.writer(fo);wr.writerow(extra+FEATS);ok=0;na=0
         for i,(r,(e,n)) in enumerate(zip(rows,st)):

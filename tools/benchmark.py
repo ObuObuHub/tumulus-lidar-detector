@@ -57,6 +57,7 @@ for nk in range(n0,n1+1):
         d=dl(nk,ek)
         if d is None: continue
         nt+=1;ox=int((ek*1000-xll0)/CS);oy=int((ytop0-(nk+1)*1000)/CS);mos[oy:oy+2000,ox:ox+2000]=d[:2000,:2000]
+if nt==0:print("EROARE: nicio dala LAKI3 pe bbox-ul GT (zona neacoperita?)");sys.exit(2)
 area_km2=(np.isfinite(mos).sum())*(CS*CS)/1e6
 print(f"BENCHMARK {os.path.basename(GT)} | {len(gt)} GT | {nt} dale | ~{area_km2:.1f} km² scanat | model {os.path.basename(MODEL)}",flush=True)
 f=int(round(2.0/CS));hw=int(40/CS)
