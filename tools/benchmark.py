@@ -60,7 +60,7 @@ for nk in range(n0,n1+1):
         nt+=1;ox=int((ek*1000-xll0)/CS);oy=int((ytop0-(nk+1)*1000)/CS);mos[oy:oy+2000,ox:ox+2000]=d[:2000,:2000]
 if nt==0:print("ERROR: no LAKI3 tiles over the GT bbox - area not covered (Romania only), OR the tile download failed (check network / geoportal.ancpi.ro / curl)");sys.exit(2)
 area_km2=(np.isfinite(mos).sum())*(CS*CS)/1e6
-print(f"BENCHMARK {os.path.basename(GT)} | {len(gt)} GT | {nt} dale | ~{area_km2:.1f} km² scanat | model {os.path.basename(MODEL)}",flush=True)
+print(f"BENCHMARK {os.path.basename(GT)} | {len(gt)} GT | {nt} tiles | ~{area_km2:.1f} km² scanned | model {os.path.basename(MODEL)}",flush=True)
 f=int(round(2.0/CS));hw=int(40/CS)
 class Net(nn.Module):
     def __init__(s):
@@ -106,21 +106,21 @@ if os.environ.get('DUMP'):
     with open(dump,'w') as fo:
         fo.write('lon,lat,score,istp\n')
         for (lo,la),(px,py,s),(ss,istp) in zip(ll,kept,dets): fo.write(f"{lo:.6f},{la:.6f},{s:.4f},{istp}\n")
-    print(f"  DUMP {len(kept)} detectii -> {dump}",flush=True)
+    print(f"  DUMP {len(kept)} detections -> {dump}",flush=True)
 # AUPRC la nivel detecție (prevalența reală: FP din scanare completă)
 dets.sort(reverse=True);tp=0;fp=0;prev_rec=0.0;ap=0.0;pr_pts=[]
 for s,istp in dets:
     if istp: tp+=1
     else: fp+=1
     prec=tp/(tp+fp);rec=tp/nGT;ap+=prec*(rec-prev_rec);prev_rec=rec;pr_pts.append((s,prec,rec))
-print(f"  AUPRC (prevalență reală, detecții peste {area_km2:.0f}km²): {ap:.3f}")
+print(f"  AUPRC (real prevalence, detections over {area_km2:.0f}km²): {ap:.3f}")
 # operating points
 for thr in (0.5,0.7,0.9):
     tp=sum(1 for s,t in dets if t==1 and s>=thr);fp=sum(1 for s,t in dets if t==0 and s>=thr)
     rec=tp/nGT;prec=tp/(tp+fp) if (tp+fp) else 0
-    print(f"  @{thr}: recall {tp}/{nGT}={rec*100:.0f}% | precizie {prec*100:.0f}% | FP {fp} ({fp/area_km2:.1f}/km²) | F1 {2*prec*rec/(prec+rec+1e-9):.2f}")
+    print(f"  @{thr}: recall {tp}/{nGT}={rec*100:.0f}% | precision {prec*100:.0f}% | FP {fp} ({fp/area_km2:.1f}/km²) | F1 {2*prec*rec/(prec+rec+1e-9):.2f}")
 # prag care ține recall 100%
 rec100=[s for s,t in dets if t==1]
 if rec100:
     thr100=min(rec100);fp100=sum(1 for s,t in dets if t==0 and s>=thr100);tp100=sum(1 for s,t in dets if t==1 and s>=thr100)
-    print(f"  @recall100 (prag {thr100:.2f}): {tp100}/{nGT} | FP {fp100} ({fp100/area_km2:.1f}/km²) | precizie {100*tp100/(tp100+fp100):.0f}%")
+    print(f"  @recall100 (threshold {thr100:.2f}): {tp100}/{nGT} | FP {fp100} ({fp100/area_km2:.1f}/km²) | precision {100*tp100/(tp100+fp100):.0f}%")
