@@ -5,12 +5,12 @@ import os,sys,math,subprocess,zipfile,random,csv
 import numpy as np
 from PIL import Image,ImageFilter,ImageDraw,ImageFont
 import torch,torch.nn as nn
-H=os.path.expanduser('~/lidar-match');dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 N=int(sys.argv[1]) if len(sys.argv)>1 else 5
 KM=float(sys.argv[2]) if len(sys.argv)>2 else 1.2
 SCALES=[48.0,80.0];CACHE="/tmp/laki3";CS=0.5;TPX=2000;os.makedirs(CACHE,exist_ok=True)
 BOX=tuple(float(x) for x in os.environ.get('BOX','22.95,43.80,23.95,44.05').split(','))  # default=Dolj SUD (LAKI III); rejection scoate lunca/apa
-APP="/Applications/QGIS-final-4_0_3.app/Contents"
+APP=os.environ.get("QGIS_APP","/Applications/QGIS-final-4_0_3.app/Contents")
 ENV=dict(os.environ,DYLD_FRAMEWORK_PATH=f"{APP}/Frameworks",PROJ_DATA=f"{APP}/Resources/qgis/proj",PROJ_LIB=f"{APP}/Resources/qgis/proj",GDAL_DATA=f"{APP}/Resources/qgis/gdal")
 GT=f"{APP}/MacOS/gdaltransform"
 def trans(lon,lat):

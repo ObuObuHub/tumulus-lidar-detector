@@ -6,12 +6,12 @@
 import os,sys,math,subprocess,zipfile,csv,json,glob
 import numpy as np
 from PIL import Image
-H=os.path.expanduser('~/lidar-match');CACHE="/tmp/laki3";CS=0.5;TPX=2000
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));CACHE="/tmp/laki3";CS=0.5;TPX=2000
 CLON=float(sys.argv[1]);CLAT=float(sys.argv[2]);KM=float(sys.argv[3]) if len(sys.argv)>3 else 6.0
 NMAX=int(sys.argv[4]) if len(sys.argv)>4 else 1500
 PREFIX=sys.argv[5] if len(sys.argv)>5 else 'z'
 COH_T=0.65; LIN_T=15.0; ENERGY_MIN=0.025   # praguri SIGURE (tumul compact nu le atinge)
-APP="/Applications/QGIS-final-4_0_3.app/Contents"
+APP=os.environ.get("QGIS_APP","/Applications/QGIS-final-4_0_3.app/Contents")
 ENV=dict(os.environ,DYLD_FRAMEWORK_PATH=f"{APP}/Frameworks",PROJ_DATA=f"{APP}/Resources/qgis/proj",PROJ_LIB=f"{APP}/Resources/qgis/proj",GDAL_DATA=f"{APP}/Resources/qgis/gdal")
 GT=f"{APP}/MacOS/gdaltransform"
 def trans(pts,s,t):

@@ -6,11 +6,11 @@ import os,sys,math,subprocess,zipfile
 import numpy as np
 from PIL import Image
 import torch,torch.nn as nn
-H=os.path.expanduser('~/lidar-match'); dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__))); dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 MODEL=sys.argv[1]; CLON=float(sys.argv[2]); CLAT=float(sys.argv[3]); KM=float(sys.argv[4]) if len(sys.argv)>4 else 4.0
 TAG=sys.argv[5] if len(sys.argv)>5 else os.path.splitext(os.path.basename(MODEL))[0]
 CACHE="/tmp/laki3"; CS=0.5; TPX=2000; os.makedirs(CACHE,exist_ok=True)
-APP="/Applications/QGIS-final-4_0_3.app/Contents"
+APP=os.environ.get("QGIS_APP","/Applications/QGIS-final-4_0_3.app/Contents")
 ENV=dict(os.environ,DYLD_FRAMEWORK_PATH=f"{APP}/Frameworks",PROJ_DATA=f"{APP}/Resources/qgis/proj",PROJ_LIB=f"{APP}/Resources/qgis/proj",GDAL_DATA=f"{APP}/Resources/qgis/gdal")
 GT=f"{APP}/MacOS/gdaltransform"
 def to_st(lo,la):

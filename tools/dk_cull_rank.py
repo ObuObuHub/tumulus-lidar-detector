@@ -5,7 +5,7 @@
 import os,sys,glob,math,csv
 import numpy as np
 from PIL import Image,ImageFilter,ImageDraw,ImageFont
-H=os.path.expanduser('~/lidar-match');N=int(sys.argv[1]) if len(sys.argv)>1 else 54
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));N=int(sys.argv[1]) if len(sys.argv)>1 else 54
 yy,xx=np.mgrid[0:128,0:128];rad=np.hypot(yy-64,xx-64);ring=(rad>=34)&(rad<=62);cent=rad<=22
 def feats(png):
     a=np.asarray(Image.open(png).convert('L').resize((128,128)).filter(ImageFilter.GaussianBlur(1.0)),np.float32)

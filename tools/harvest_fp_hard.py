@@ -8,7 +8,7 @@ import os,sys,math,subprocess,csv,glob,random,collections
 import numpy as np
 from PIL import Image,ImageDraw,ImageFont,ImageFilter
 import torch,torch.nn as nn
-H=os.path.expanduser('~/lidar-match');dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 CACHE="/tmp/laki3";CS=0.5;TPX=2000;f=int(round(2.0/CS));WPX=int(80/CS)
 N=int(sys.argv[1]) if len(sys.argv)>1 else 5000
 THR=float(sys.argv[2]) if len(sys.argv)>2 else 0.5
@@ -17,7 +17,7 @@ SEED=int(sys.argv[4]) if len(sys.argv)>4 else 7
 STEP_M=30;MODEL=os.environ.get('MODEL',f'{H}/combined_cnn.pt');OUT=os.environ.get('OUTDIR',f"{H}/dataset_neg_ro_fp5k")
 random.seed(SEED);np.random.seed(SEED)
 os.makedirs(OUT,exist_ok=True)
-APP="/Applications/QGIS-final-4_0_3.app/Contents"
+APP=os.environ.get("QGIS_APP","/Applications/QGIS-final-4_0_3.app/Contents")
 ENV=dict(os.environ,DYLD_FRAMEWORK_PATH=f"{APP}/Frameworks",PROJ_DATA=f"{APP}/Resources/qgis/proj",PROJ_LIB=f"{APP}/Resources/qgis/proj",GDAL_DATA=f"{APP}/Resources/qgis/gdal")
 GT=f"{APP}/MacOS/gdaltransform"
 def trans(pts,s,t):

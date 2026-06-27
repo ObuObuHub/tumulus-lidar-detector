@@ -5,7 +5,7 @@ import os,sys,math,subprocess
 import numpy as np
 from PIL import Image,ImageFilter
 import torch,torch.nn as nn
-H=os.path.expanduser('~/lidar-match');dev=torch.device('mps')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));dev=torch.device('mps')
 CLON=float(sys.argv[1]);CLAT=float(sys.argv[2]);KM=float(sys.argv[3]) if len(sys.argv)>3 else 5.0
 R=6378137.0;C=2*math.pi*R;ORIG=-20037508.342787;ORIGY=20037508.342787;Z=17;MPP=C/(256*2**Z)
 ORG="Q2Kmg0bQDn3rySgn";TM="/tmp/mdh_tiles"

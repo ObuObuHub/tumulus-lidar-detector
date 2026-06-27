@@ -28,7 +28,7 @@ for c in circ:
     cx=sum(x for x,y in c)/len(c)*sc; cy=sum(y for x,y in c)/len(c)*sc
     X=ORIG+(x0+cx)*res; Y=ORIGY-(y0+cy)*res
     out.append({'tile':TILE,'id':'','lon':round((X/R)*180/math.pi,6),'lat':round((2*math.atan(math.exp(Y/R))-math.pi/2)*180/math.pi,6),'verdict':'mound','type':'tumul','source':SRC})
-L=os.path.expanduser('~/lidar-match/labeled'); mf=f'{L}/labels.csv'
+L=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'labeled'); mf=f'{L}/labels.csv'
 allr=list(csv.DictReader(open(mf)))+out
 with open(mf,'w',newline='') as fh:
     w=csv.DictWriter(fh,fieldnames=['tile','id','lon','lat','verdict','type','source']); w.writeheader(); w.writerows(allr)

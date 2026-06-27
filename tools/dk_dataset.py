@@ -8,7 +8,7 @@ from PIL import Image
 socket.setdefaulttimeout(60); random.seed(20260621)
 NPOS=int(sys.argv[1]) if len(sys.argv)>1 else 300
 NNEG=int(sys.argv[2]) if len(sys.argv)>2 else 500
-H=os.path.expanduser('~/lidar-match'); TK=open(f'{H}/.dk_token').read().strip()
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__))); TK=open(f'{H}/.dk_token').read().strip()
 UA={'User-Agent':'Mozilla/5.0'}
 # bbox-uri peste Danemarca (EPSG:25832): Jutland N/C/S, Fyn, Sjælland
 BOXES=[(480000,6300000,540000,6360000),(500000,6180000,560000,6240000),(520000,6080000,580000,6140000),

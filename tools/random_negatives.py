@@ -10,8 +10,8 @@ random.seed(20260620)
 N=int(sys.argv[1]) if len(sys.argv)>1 else 1000
 MAX_TILES=int(sys.argv[2]) if len(sys.argv)>2 else 80
 CACHE="/tmp/laki3"; CS=0.5; TPX=2000; os.makedirs(CACHE,exist_ok=True)
-OUT=os.path.expanduser("~/lidar-match/dataset_neg"); os.makedirs(OUT,exist_ok=True)
-APP="/Applications/QGIS-final-4_0_3.app/Contents"
+OUT=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "dataset_neg"); os.makedirs(OUT,exist_ok=True)
+APP=os.environ.get("QGIS_APP","/Applications/QGIS-final-4_0_3.app/Contents")
 ENV=dict(os.environ,DYLD_FRAMEWORK_PATH=f"{APP}/Frameworks",PROJ_DATA=f"{APP}/Resources/qgis/proj",PROJ_LIB=f"{APP}/Resources/qgis/proj",GDAL_DATA=f"{APP}/Resources/qgis/gdal")
 GT=f"{APP}/MacOS/gdaltransform"
 def trans(pts,s,t):
@@ -22,9 +22,9 @@ def trans(pts,s,t):
 # coverage LAKI III 0.5m (lon/lat boxes)
 BOXES=[(22.77,43.66,24.28,44.75),(21.73,43.91,23.67,45.29),(21.23,44.52,22.79,45.71),(22.52,44.53,23.88,45.38)]
 # known mounds -> Stereo70 (exclude)
-mounds=[(float(r['lon']),float(r['lat'])) for r in csv.DictReader(open(os.path.expanduser('~/lidar-match/labeled/labels.csv'))) if r['verdict']=='mound']
+mounds=[(float(r['lon']),float(r['lat'])) for r in csv.DictReader(open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'labeled/labels.csv'))) if r['verdict']=='mound']
 ran=[]
-for r in list(csv.reader(open(os.path.expanduser('~/lidar-match/vest_tumuli.csv'))))[1:]:
+for r in list(csv.reader(open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'vest_tumuli.csv'))))[1:]:
     try: ran.append((float(r[4]),float(r[5])))
     except: pass
 known=np.array(trans(mounds+ran,"EPSG:4326","EPSG:3844")) if (mounds+ran) else np.empty((0,2))

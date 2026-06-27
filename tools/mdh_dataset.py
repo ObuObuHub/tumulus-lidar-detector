@@ -12,7 +12,7 @@ MPP=C/(256*2**Z)  # ~1.19 m/px
 MDH=[("AR_MDH_tif",(20.67,45.86,22.77,46.70)),("BH_MDH_tif",(21.37,46.36,22.83,47.61)),
      ("HD_MDH_tif",(22.32,45.23,23.60,46.37)),("AB_MDH_tif",(22.66,45.44,23.82,46.59))]
 ORG="Q2Kmg0bQDn3rySgn"; TDIR="/tmp/mdh_tiles"; os.makedirs(TDIR,exist_ok=True)
-H=os.path.expanduser('~/lidar-match')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def pick(lon,lat):
     for svc,(a,b,c,d) in MDH:
         if a<=lon<=c and b<=lat<=d: return svc

@@ -5,7 +5,7 @@
 import os,sys,math,subprocess,csv,glob,random
 import numpy as np
 CACHE="/tmp/laki3";CS=0.5;TPX=2000
-APP="/Applications/QGIS-final-4_0_3.app/Contents"
+APP=os.environ.get("QGIS_APP","/Applications/QGIS-final-4_0_3.app/Contents")
 ENV=dict(os.environ,DYLD_FRAMEWORK_PATH=f"{APP}/Frameworks",PROJ_DATA=f"{APP}/Resources/qgis/proj",PROJ_LIB=f"{APP}/Resources/qgis/proj",GDAL_DATA=f"{APP}/Resources/qgis/gdal")
 GT=f"{APP}/MacOS/gdaltransform"
 def trans_many(pts):

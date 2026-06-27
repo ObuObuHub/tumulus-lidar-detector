@@ -7,7 +7,7 @@ import numpy as np
 from PIL import Image
 import torch,torch.nn as nn
 random.seed(0); torch.manual_seed(0); np.random.seed(0)
-H=os.path.expanduser('~/lidar-match')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 print("device:",dev)
 # --- pozitivi: dataset_pos + coord/locality din labels.csv (LAKI3_DTM) pt split geografic ---

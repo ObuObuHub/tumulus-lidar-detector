@@ -5,7 +5,7 @@ import os,sys,math
 import numpy as np
 from PIL import Image,ImageFilter,ImageDraw
 import torch,torch.nn as nn
-H=os.path.expanduser('~/lidar-match');dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 MODEL=sys.argv[1];IMG=sys.argv[2];TH=float(sys.argv[3]) if len(sys.argv)>3 else 0.9
 def homog(a):
     a2=np.asarray(Image.fromarray(a).filter(ImageFilter.GaussianBlur(0.8)),np.uint8);cdf=np.bincount(a2.ravel(),minlength=256).astype(np.float64).cumsum()

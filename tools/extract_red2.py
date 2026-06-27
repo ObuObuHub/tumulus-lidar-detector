@@ -68,7 +68,7 @@ for i,(cx,cy,ok) in enumerate(uniq,1):
 ov.save('/tmp/extract_overlay.png')
 print(f'cercuri {len(uniq)} -> movile {len(out)} | fara dom clar (galben, neraportate): {noflag} | dedup 20m')
 if WRITE:
-    L=os.path.expanduser('~/lidar-match/labeled'); mf=f'{L}/labels.csv'
+    L=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'labeled'); mf=f'{L}/labels.csv'
     allr=list(csv.DictReader(open(mf)))+out
     with open(mf,'w',newline='') as fh:
         w=csv.DictWriter(fh,fieldnames=['tile','id','lon','lat','verdict','type','source']); w.writeheader(); w.writerows(allr)

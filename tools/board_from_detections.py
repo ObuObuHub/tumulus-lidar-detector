@@ -1,13 +1,13 @@
 import os,sys,math,subprocess,zipfile,csv
 import numpy as np
 from PIL import Image,ImageDraw,ImageFont
-H=os.path.expanduser('~/lidar-match');CACHE="/tmp/laki3";CS=0.5;TPX=2000
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));CACHE="/tmp/laki3";CS=0.5;TPX=2000
 # board_from_detections.py [det_csv] [out_board_png] [out_map_csv] [titlu_zona] — board numerotat scor-ASCUNS
 IN_CSV  = sys.argv[1] if len(sys.argv)>1 else f'{H}/labeled/eval_session_22iun/catane_detections.csv'
 OUT_PNG = sys.argv[2] if len(sys.argv)>2 else f'{H}/review/dolj_roundfp_board.png'
 OUT_MAP = sys.argv[3] if len(sys.argv)>3 else '/tmp/dolj_roundfp_map.csv'
 TITLU   = sys.argv[4] if len(sys.argv)>4 else 'Dolj nord'
-APP="/Applications/QGIS-final-4_0_3.app/Contents"
+APP=os.environ.get("QGIS_APP","/Applications/QGIS-final-4_0_3.app/Contents")
 ENV=dict(os.environ,DYLD_FRAMEWORK_PATH=f"{APP}/Frameworks",PROJ_DATA=f"{APP}/Resources/qgis/proj",PROJ_LIB=f"{APP}/Resources/qgis/proj",GDAL_DATA=f"{APP}/Resources/qgis/gdal")
 GT=f"{APP}/MacOS/gdaltransform"
 def trans(p,s,t):

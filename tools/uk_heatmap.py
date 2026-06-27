@@ -5,11 +5,11 @@ import sys,os,math,subprocess,json
 import numpy as np
 from PIL import Image,ImageFilter,ImageDraw,ImageFont
 import torch,torch.nn as nn
-H=os.path.expanduser('~/lidar-match');dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 CLON=float(sys.argv[1]);CLAT=float(sys.argv[2]);KM=float(sys.argv[3]) if len(sys.argv)>3 else 2.5
 MODEL=sys.argv[4] if len(sys.argv)>4 else f'{H}/combined_cnn.pt'
 MPP=1.0;SCALES=[80];CID="13787b9a-26a4-4775-8523-806d13af58fc__Lidar_Composite_Elevation_DTM_1m"  # 80m = fereastra FIXĂ a setului de antrenament (insight Andrei): NU multi-scală (40/56 zoom texturi mici→fals fire)
-APP="/Applications/QGIS-final-4_0_3.app/Contents"
+APP=os.environ.get("QGIS_APP","/Applications/QGIS-final-4_0_3.app/Contents")
 ENV=dict(os.environ,DYLD_FRAMEWORK_PATH=f"{APP}/Frameworks",PROJ_DATA=f"{APP}/Resources/qgis/proj",PROJ_LIB=f"{APP}/Resources/qgis/proj",GDAL_DATA=f"{APP}/Resources/qgis/gdal")
 GTR=f"{APP}/MacOS/gdal_translate"
 def osgb(lat_deg,lon_deg):

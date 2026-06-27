@@ -7,7 +7,7 @@ import sys,os,math
 import numpy as np
 from PIL import Image,ImageFilter,ImageDraw,ImageFont
 import torch,torch.nn as nn
-H=os.path.expanduser('~/lidar-match');dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 IMG=sys.argv[1];MODEL=sys.argv[2];WIN=int(sys.argv[3]);TH=float(sys.argv[4]) if len(sys.argv)>4 else 0.9
 GT=[(105,165),(425,605),(590,830),(672,920),(755,1010),(812,1095),(868,1165)]  # cei 7 marcați de Andrei
 im=Image.open(IMG).convert('L');A=np.asarray(im,np.float32);Hh,Ww=A.shape

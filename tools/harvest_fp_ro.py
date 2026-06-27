@@ -6,7 +6,7 @@
 import os,sys,math,subprocess,csv,glob,random
 import numpy as np
 from PIL import Image,ImageDraw,ImageFont
-H=os.path.expanduser('~/lidar-match')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CACHE="/tmp/laki3";CS=0.5;TPX=2000;f=int(round(2.0/CS))      # f=4 -> 2m effective (EXACT training)
 WIN_M=80;WPX=int(WIN_M/CS)                                    # 160 px = 80 m
 OUT=f"{H}/dataset_neg_ro_fp5k"
@@ -14,7 +14,7 @@ N_TARGET=int(sys.argv[1]) if len(sys.argv)>1 else 5000
 STEP_M=int(sys.argv[2]) if len(sys.argv)>2 else 60
 MAXPERTILE=int(sys.argv[3]) if len(sys.argv)>3 else 25
 random.seed(0);np.random.seed(0)
-APP="/Applications/QGIS-final-4_0_3.app/Contents"
+APP=os.environ.get("QGIS_APP","/Applications/QGIS-final-4_0_3.app/Contents")
 ENV=dict(os.environ,DYLD_FRAMEWORK_PATH=f"{APP}/Frameworks",PROJ_DATA=f"{APP}/Resources/qgis/proj",PROJ_LIB=f"{APP}/Resources/qgis/proj",GDAL_DATA=f"{APP}/Resources/qgis/gdal")
 GT=f"{APP}/MacOS/gdaltransform"
 def hs(dem,cs,azs=(315,45,135,225,270,0),alt=35):

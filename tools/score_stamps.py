@@ -6,7 +6,7 @@ import os,sys,glob,math
 import numpy as np
 from PIL import Image,ImageFilter
 import torch,torch.nn as nn
-H=os.path.expanduser('~/lidar-match');dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 DIR=sys.argv[1];MODEL=sys.argv[2] if len(sys.argv)>2 else f'{H}/combined_cnn.pt';PAT=sys.argv[3] if len(sys.argv)>3 else '*.png'
 def _histeq(a):
     h=np.bincount(a.ravel(),minlength=256).astype(np.float64);cdf=h.cumsum()

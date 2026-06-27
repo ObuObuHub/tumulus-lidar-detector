@@ -6,7 +6,7 @@ import numpy as np
 from PIL import Image,ImageFilter,ImageDraw,ImageFont
 R=6378137.0;C=2*math.pi*R;ORIG=-20037508.342787;ORIGY=20037508.342787;Z=17;MPP=C/(256*2**Z)
 ORG="Q2Kmg0bQDn3rySgn";TDIR="/tmp/mdh_tiles";os.makedirs(TDIR,exist_ok=True)
-H=os.path.expanduser('~/lidar-match')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MDH=[("AR_MDH_tif",(20.67,45.86,22.77,46.70)),("BH_MDH_tif",(21.37,46.36,22.83,47.61)),("HD_MDH_tif",(22.32,45.23,23.60,46.37))]
 def pick(lo,la):
     for s,(a,b,c,d) in MDH:

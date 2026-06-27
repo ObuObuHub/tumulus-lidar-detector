@@ -8,11 +8,11 @@ import os,sys,math,subprocess,json,csv
 import numpy as np
 from PIL import Image,ImageFilter,ImageDraw
 import torch,torch.nn as nn
-H=os.path.expanduser('~/lidar-match');dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 MARKED=sys.argv[1];GEO=json.load(open(sys.argv[2]));MODEL=sys.argv[3] if len(sys.argv)>3 else f'{H}/combined_cnn.pt'
 TH=float(sys.argv[4]) if len(sys.argv)>4 else 0.7;PREFIX=sys.argv[5] if len(sys.argv)>5 else 'zone2'
 SCALES=GEO.get("scales",[40,52,68,88,115]);CACHE="/tmp/laki3";CS=GEO["CS"]
-APP="/Applications/QGIS-final-4_0_3.app/Contents"
+APP=os.environ.get("QGIS_APP","/Applications/QGIS-final-4_0_3.app/Contents")
 ENV=dict(os.environ,DYLD_FRAMEWORK_PATH=f"{APP}/Frameworks",PROJ_DATA=f"{APP}/Resources/qgis/proj",PROJ_LIB=f"{APP}/Resources/qgis/proj",GDAL_DATA=f"{APP}/Resources/qgis/gdal")
 GT=f"{APP}/MacOS/gdaltransform"
 def trans(p,s,t):

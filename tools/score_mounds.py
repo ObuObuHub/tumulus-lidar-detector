@@ -6,7 +6,7 @@ import sys,os,math,subprocess,csv
 import numpy as np
 from PIL import Image,ImageFilter
 import torch,torch.nn as nn
-H=os.path.expanduser('~/lidar-match');dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 MODEL=sys.argv[1]
 LOMIN,LOMAX,LAMIN,LAMAX=(float(sys.argv[2]),float(sys.argv[3]),float(sys.argv[4]),float(sys.argv[5])) if len(sys.argv)>5 else (20.67,22.77,45.86,46.70)
 R=6378137.0;ORIG=-20037508.342787;ORIGY=20037508.342787;Z=18;MPP=2*math.pi*R/(256*2**Z)

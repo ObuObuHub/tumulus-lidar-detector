@@ -7,7 +7,7 @@ import numpy as np
 from PIL import Image,ImageFilter
 import torch,torch.nn as nn
 random.seed(11)
-H=os.path.expanduser('~/lidar-match');dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 N=int(os.sys.argv[1]) if len(os.sys.argv)>1 else 120
 R=6378137.0;ORIG=-20037508.342787;ORIGY=20037508.342787;Z=16;MPP=2*math.pi*R/(256*2**Z)
 ORG="wCvLzGFkz06gCfBg";svc="1m";TDIR="/tmp/nat_tiles";os.makedirs(TDIR,exist_ok=True)

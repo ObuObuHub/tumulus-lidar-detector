@@ -7,10 +7,10 @@
 import os,sys,math,subprocess,csv,glob,collections
 import numpy as np
 from PIL import Image,ImageDraw,ImageFont
-H=os.path.expanduser('~/lidar-match');CACHE="/tmp/laki3";CS=0.5;f=int(round(2.0/CS));WPX=int(80/CS);TPX=2000
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));CACHE="/tmp/laki3";CS=0.5;f=int(round(2.0/CS));WPX=int(80/CS);TPX=2000
 APPLY=len(sys.argv)>1 and sys.argv[1] in('1','apply','APPLY')
 OUT=os.environ.get('OUTDIR',f"{H}/dataset_neg_ro_fp5k");EXC=OUT+"_domes_excluded"
-APP="/Applications/QGIS-final-4_0_3.app/Contents"
+APP=os.environ.get("QGIS_APP","/Applications/QGIS-final-4_0_3.app/Contents")
 ENV=dict(os.environ,DYLD_FRAMEWORK_PATH=f"{APP}/Frameworks",PROJ_DATA=f"{APP}/Resources/qgis/proj",PROJ_LIB=f"{APP}/Resources/qgis/proj",GDAL_DATA=f"{APP}/Resources/qgis/gdal")
 GT=f"{APP}/MacOS/gdaltransform"
 def downs(a,fc):

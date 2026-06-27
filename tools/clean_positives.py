@@ -8,7 +8,7 @@ import sys,os,glob,json,random,shutil
 import numpy as np
 from PIL import Image,ImageDraw
 import torch,torch.nn as nn
-H=os.path.expanduser('~/lidar-match'); dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__))); dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 DIR=sys.argv[1] if len(sys.argv)>1 and not sys.argv[1].startswith('--') else f'{H}/dataset_pos_dk'
 APPLY='--apply' in sys.argv
 class Net(nn.Module):

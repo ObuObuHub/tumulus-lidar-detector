@@ -7,11 +7,11 @@
 import os,sys,math,subprocess,csv
 import numpy as np
 from PIL import Image,ImageDraw,ImageFont
-H=os.path.expanduser('~/lidar-match');CACHE="/tmp/laki3";CS=0.5;TPX=2000
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));CACHE="/tmp/laki3";CS=0.5;TPX=2000
 CSVf=sys.argv[1] if len(sys.argv)>1 else f"{H}/review/sweep_dolj_final.csv"
 TAG=sys.argv[2] if len(sys.argv)>2 else 'dolj'
 WIN_M=float(sys.argv[3]) if len(sys.argv)>3 else 200.0
-APP="/Applications/QGIS-final-4_0_3.app/Contents"
+APP=os.environ.get("QGIS_APP","/Applications/QGIS-final-4_0_3.app/Contents")
 ENV=dict(os.environ,DYLD_FRAMEWORK_PATH=f"{APP}/Frameworks",PROJ_DATA=f"{APP}/Resources/qgis/proj",PROJ_LIB=f"{APP}/Resources/qgis/proj",GDAL_DATA=f"{APP}/Resources/qgis/gdal")
 GT=f"{APP}/MacOS/gdaltransform"
 def trans(pts,s,t):

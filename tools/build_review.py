@@ -37,7 +37,7 @@ def slrm_stamp(lon,lat):
     rel=a-b; lo,hi=np.percentile(rel,2),np.percentile(rel,98)
     sl=Image.fromarray(np.clip((rel-lo)/(hi-lo+1e-6)*255,0,255).astype('uint8'))
     return sl.crop((128,128,384,384))   # center 256
-H=os.path.expanduser('~/lidar-match'); REV=f'{H}/review'
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__))); REV=f'{H}/review'
 rows=list(csv.DictReader(open(f'{H}/labeled/labels.csv')))
 from collections import defaultdict
 bygrp=defaultdict(list)

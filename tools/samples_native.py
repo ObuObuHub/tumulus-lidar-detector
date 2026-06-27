@@ -9,7 +9,7 @@ from PIL import Image,ImageDraw,ImageFont,ImageFilter
 CAND=sys.argv[1];WIN_M=float(sys.argv[2]) if len(sys.argv)>2 else 100.0
 TAG=sys.argv[3] if len(sys.argv)>3 else 'movileni_native'
 BIG=set(int(x) for x in os.environ.get('BIG','').split(',') if x.strip())
-H=os.path.expanduser('~/lidar-match')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 R=6378137.0;ORIG=-20037508.342787;ORIGY=20037508.342787;Z=16;MPP=2*math.pi*R/(256*2**Z)
 ORG="wCvLzGFkz06gCfBg";svc="1m";TDIR="/tmp/nat_tiles";os.makedirs(TDIR,exist_ok=True)
 def merc(lo,la): return R*math.radians(lo), R*math.log(math.tan(math.pi/4+math.radians(la)/2))

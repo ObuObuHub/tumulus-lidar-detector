@@ -8,7 +8,7 @@ import sys,os,math,subprocess
 import numpy as np
 from PIL import Image,ImageFilter,ImageDraw,ImageFont
 import torch,torch.nn as nn
-H=os.path.expanduser('~/lidar-match');dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 CLON=float(sys.argv[1]);CLAT=float(sys.argv[2]);KM=float(sys.argv[3]) if len(sys.argv)>3 else 1.5
 MODEL=sys.argv[4] if len(sys.argv)>4 else f'{H}/combined_cnn.pt'
 STEP_M=float(sys.argv[5]) if len(sys.argv)>5 else 12.0   # pas grilă în metri (fin = heatmap netedă)

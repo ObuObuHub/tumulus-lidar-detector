@@ -6,7 +6,7 @@ import sys,os,math
 import numpy as np
 from PIL import Image,ImageFilter,ImageDraw,ImageFont
 import torch,torch.nn as nn
-H=os.path.expanduser('~/lidar-match');dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 IMG=sys.argv[1];MODEL=sys.argv[2]
 MPP=float(sys.argv[3]) if len(sys.argv)>3 else 0.5
 SCALES=[float(x) for x in (sys.argv[4].split(',') if len(sys.argv)>4 else "48,64,80".split(','))]

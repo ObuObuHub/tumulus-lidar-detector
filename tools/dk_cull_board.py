@@ -4,7 +4,7 @@
 # -> review/dk_cull_board.png + /tmp/dk_cull_map.csv (idx,file). Apoi detect_board_marks + ștergere.
 import os,sys,glob,random,csv
 from PIL import Image,ImageDraw,ImageFont
-H=os.path.expanduser('~/lidar-match')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 N=int(sys.argv[1]) if len(sys.argv)>1 else 54
 SEED=int(sys.argv[2]) if len(sys.argv)>2 else 42
 fs=sorted(glob.glob(f'{H}/dataset_pos_dk/*.png'))

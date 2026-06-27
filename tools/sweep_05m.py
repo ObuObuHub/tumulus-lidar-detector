@@ -12,7 +12,7 @@
 # Env:
 #   SWEEP_BBOX="e0,e1,n0,n1"  (km EPSG:3844; default Dolj 322,429,233,336)
 #   TAG=dolj  BLOCK_KM=8  STEP_TILES=7  STEP_M=12  CANDTHR=0.60  MINDISK_GB=6
-#   MODEL=~/lidar-match/combined_cnn.pt  KEEP_DOWNLOADS=0 (1=nu sterge nimic, pt teste)  MAXBLOCKS=0 (0=toate)
+#   MODEL=<repo>/combined_cnn.pt  KEEP_DOWNLOADS=0 (1=nu sterge nimic, pt teste)  MAXBLOCKS=0 (0=toate)
 import os,sys,math,subprocess,csv,json,time,shutil,glob
 import numpy as np
 from PIL import Image,ImageFilter,ImageDraw,ImageFont

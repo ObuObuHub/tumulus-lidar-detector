@@ -7,7 +7,7 @@ import numpy as np
 from PIL import Image,ImageDraw,ImageFont,ImageFilter
 import torch,torch.nn as nn
 random.seed(0); torch.manual_seed(0); np.random.seed(0)
-H=os.path.expanduser('~/lidar-match'); dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__))); dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 def _rankavg(a):
     a=np.asarray(a,float); s=np.argsort(a,kind='mergesort'); aS=a[s]; n=len(a); rs=np.arange(1,n+1,dtype=float); i=0
     while i<n:

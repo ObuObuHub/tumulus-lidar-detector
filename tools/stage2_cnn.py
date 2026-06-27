@@ -7,7 +7,7 @@ import os,sys,json,math
 import numpy as np
 import torch,torch.nn as nn
 dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
-H=os.path.expanduser('~/lidar-match')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def auc(score,y):
     pos=score[y==1];neg=score[y==0]
     if len(pos)==0 or len(neg)==0:return 0.5

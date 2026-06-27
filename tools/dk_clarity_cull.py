@@ -8,7 +8,7 @@
 import os,sys,glob,csv
 import numpy as np
 from PIL import Image,ImageFilter,ImageDraw,ImageFont
-H=os.path.expanduser('~/lidar-match')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PCT=float(sys.argv[1]) if len(sys.argv)>1 and not sys.argv[1].startswith('--') else 10.0
 COMMIT='--commit' in sys.argv
 yy,xx=np.mgrid[0:128,0:128];rad=np.hypot(yy-64,xx-64);cent=rad<=26

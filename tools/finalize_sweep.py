@@ -6,11 +6,11 @@
 import os,sys,json,csv,math,subprocess
 import numpy as np
 from PIL import Image,ImageDraw,ImageFont
-H=os.path.expanduser('~/lidar-match')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TAG=sys.argv[1] if len(sys.argv)>1 else 'dolj'
 st=json.load(open(f"/tmp/sweep_{TAG}_state.json"))
 cands=st["cands"]
-APP="/Applications/QGIS-final-4_0_3.app/Contents"
+APP=os.environ.get("QGIS_APP","/Applications/QGIS-final-4_0_3.app/Contents")
 ENV=dict(os.environ,DYLD_FRAMEWORK_PATH=f"{APP}/Frameworks",PROJ_DATA=f"{APP}/Resources/qgis/proj",PROJ_LIB=f"{APP}/Resources/qgis/proj",GDAL_DATA=f"{APP}/Resources/qgis/gdal")
 GT=f"{APP}/MacOS/gdaltransform"
 def trans(pts,s,t):

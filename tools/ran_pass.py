@@ -6,12 +6,12 @@ import os,sys,math,subprocess,zipfile
 import numpy as np
 from PIL import Image,ImageFilter,ImageDraw,ImageFont
 import torch,torch.nn as nn
-H=os.path.expanduser('~/lidar-match');dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 CLON=float(sys.argv[1]);CLAT=float(sys.argv[2]);KM=float(sys.argv[3]) if len(sys.argv)>3 else 1.6
 MODEL=sys.argv[4] if len(sys.argv)>4 else f'{H}/combined_cnn.pt'
 SCALES=[float(x) for x in (sys.argv[5].split(',') if len(sys.argv)>5 else "48,64,80".split(','))]
 CACHE="/tmp/laki3";CS=0.5;TPX=2000;os.makedirs(CACHE,exist_ok=True)
-APP="/Applications/QGIS-final-4_0_3.app/Contents"
+APP=os.environ.get("QGIS_APP","/Applications/QGIS-final-4_0_3.app/Contents")
 ENV=dict(os.environ,DYLD_FRAMEWORK_PATH=f"{APP}/Frameworks",PROJ_DATA=f"{APP}/Resources/qgis/proj",PROJ_LIB=f"{APP}/Resources/qgis/proj",GDAL_DATA=f"{APP}/Resources/qgis/gdal")
 GT=f"{APP}/MacOS/gdaltransform"
 def trans(lon,lat):
@@ -115,7 +115,7 @@ if CURVGATE and kept:
     with open('/tmp/_curvg_in.csv','w',newline='') as f:
         w=_csvg.writer(f);w.writerow(['lon','lat'])
         for ll in lls: w.writerow([ll[0],ll[1]])
-    subprocess.run([f"{H}/venv/bin/python",f"{H}/tools/curv_filter.py","/tmp/_curvg_in.csv","/tmp/_curvg_out.csv",f"{H}/curv_gate.json",CURVGATE],check=False)
+    subprocess.run([sys.executable,f"{H}/tools/curv_filter.py","/tmp/_curvg_in.csv","/tmp/_curvg_out.csv",f"{H}/curv_gate.json",CURVGATE],check=False)
     keepf=[r.get('keep')=='1' for r in _csvg.DictReader(open('/tmp/_curvg_out.csv'))]
     if len(keepf)==len(kept):
         nk=len(kept);kept=[k for k,ok in zip(kept,keepf) if ok]

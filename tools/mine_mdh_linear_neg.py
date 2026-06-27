@@ -6,7 +6,7 @@
 import sys,os,math,subprocess,csv,glob
 import numpy as np
 from PIL import Image
-H=os.path.expanduser('~/lidar-match')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CLON=float(sys.argv[1]);CLAT=float(sys.argv[2]);KM=float(sys.argv[3]) if len(sys.argv)>3 else 6.0
 NMAX=int(sys.argv[4]) if len(sys.argv)>4 and not sys.argv[4].startswith('--') else 3000
 MONTAJ='--montaj' in sys.argv

@@ -18,8 +18,8 @@ random.seed(SEED)
 EXCL=800.0          # m fata de orice movila cunoscuta (zona FARA movile)
 FLAT_WIN=300.0      # m context pt calcul relief
 CACHE="/tmp/laki3"; CS=0.5; TPX=2000; os.makedirs(CACHE,exist_ok=True)
-OUT=os.path.expanduser(f"~/lidar-match/dataset_neg_ro_{LABEL}"); os.makedirs(OUT,exist_ok=True)
-APP="/Applications/QGIS-final-4_0_3.app/Contents"
+OUT=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), f"dataset_neg_ro_{LABEL}"); os.makedirs(OUT,exist_ok=True)
+APP=os.environ.get("QGIS_APP","/Applications/QGIS-final-4_0_3.app/Contents")
 ENV=dict(os.environ,DYLD_FRAMEWORK_PATH=f"{APP}/Frameworks",PROJ_DATA=f"{APP}/Resources/qgis/proj",PROJ_LIB=f"{APP}/Resources/qgis/proj",GDAL_DATA=f"{APP}/Resources/qgis/gdal")
 GT=f"{APP}/MacOS/gdaltransform"
 def trans(pts,s,t):
@@ -28,9 +28,9 @@ def trans(pts,s,t):
     r=subprocess.run([GT,"-s_srs",s,"-t_srs",t],input=inp,capture_output=True,text=True,env=ENV)
     return [(float(l.split()[0]),float(l.split()[1])) for l in r.stdout.strip().split("\n") if l.split()]
 BOXES=[(22.77,43.66,24.28,44.75),(21.73,43.91,23.67,45.29),(21.23,44.52,22.79,45.71),(22.52,44.53,23.88,45.38)]
-mounds=[(float(r['lon']),float(r['lat'])) for r in csv.DictReader(open(os.path.expanduser('~/lidar-match/labeled/labels.csv'))) if r['verdict']=='mound']
+mounds=[(float(r['lon']),float(r['lat'])) for r in csv.DictReader(open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'labeled/labels.csv'))) if r['verdict']=='mound']
 ran=[]
-for r in list(csv.reader(open(os.path.expanduser('~/lidar-match/vest_tumuli.csv'))))[1:]:
+for r in list(csv.reader(open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'vest_tumuli.csv'))))[1:]:
     try: ran.append((float(r[4]),float(r[5])))
     except: pass
 known=np.array(trans(mounds+ran,"EPSG:4326","EPSG:3844")) if (mounds+ran) else np.empty((0,2))
@@ -116,5 +116,5 @@ fs=sorted(glob.glob(f"{OUT}/*.png")); random.seed(3); random.shuffle(fs); fs=fs[
 cols=8;rows=(len(fs)+cols-1)//cols
 M=Image.new('L',(cols*132+4,rows*132+4),40)
 for i,f in enumerate(fs): M.paste(Image.open(f).resize((128,128)),((i%cols)*132+2,(i//cols)*132+2))
-SAMPLE=os.path.expanduser(f"~/lidar-match/review/ro_{LABEL}_neg_sample.png"); M.save(SAMPLE)
+SAMPLE=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), f"review/ro_{LABEL}_neg_sample.png"); M.save(SAMPLE)
 print(f"GATA: {saved} negative '{LABEL}' (amp {AMP_MIN}-{AMP_MAX}m) din {used} dale (respins banda {rej_mt}, langa movila {rej_mound}) -> {OUT} + {SAMPLE}")

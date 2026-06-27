@@ -4,7 +4,7 @@
 # 0.5m; ~30s încărcare); (2) Satelit = Google Maps imagine satelitară + pin. Iese HTML (deschis în browser,
 # linkuri clicabile) + CSV (import în Sheets, linkuri clicabile). Tag descoperire vs lângă-movilă-cunoscută.
 import os,sys,csv,html
-H=os.path.expanduser('~/lidar-match')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CSVf=sys.argv[1] if len(sys.argv)>1 else f"{H}/review/sweep_dolj_final.csv"
 TAG=sys.argv[2] if len(sys.argv)>2 else 'dolj'
 WEBMAP="de24b3ffeeda4209b2229c2a902b6312"  # webmap RO-LiDAR (Hegyi), public

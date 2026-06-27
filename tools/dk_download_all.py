@@ -6,7 +6,7 @@ import os,urllib.request,urllib.parse,json,socket,io,math
 import numpy as np
 from PIL import Image
 socket.setdefaulttimeout(60)
-H=os.path.expanduser('~/lidar-match'); TK=open(f'{H}/.dk_token').read().strip(); UA={'User-Agent':'Mozilla/5.0'}
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__))); TK=open(f'{H}/.dk_token').read().strip(); UA={'User-Agent':'Mozilla/5.0'}
 coords=json.load(open('/tmp/dk_all_rundhoj.json'))
 OUTP=f'{H}/dataset_pos_dk'; os.makedirs(OUTP,exist_ok=True)
 def hs(dem,cs,azs=(315,45,135,225,270,0),alt=35):

@@ -6,11 +6,11 @@ import os,sys,math,subprocess,csv
 import numpy as np
 from PIL import Image,ImageFilter
 import torch,torch.nn as nn
-H=os.path.expanduser('~/lidar-match');dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 CACHE="/tmp/laki3";CS=0.5;TPX=2000
 MODEL=sys.argv[1] if len(sys.argv)>1 else f'{H}/combined_cnn.pt'
 COORDS=sys.argv[2] if len(sys.argv)>2 else '/tmp/catane_gt.csv'
-APP="/Applications/QGIS-final-4_0_3.app/Contents"
+APP=os.environ.get("QGIS_APP","/Applications/QGIS-final-4_0_3.app/Contents")
 ENV=dict(os.environ,DYLD_FRAMEWORK_PATH=f"{APP}/Frameworks",PROJ_DATA=f"{APP}/Resources/qgis/proj",PROJ_LIB=f"{APP}/Resources/qgis/proj",GDAL_DATA=f"{APP}/Resources/qgis/gdal")
 GTb=f"{APP}/MacOS/gdaltransform"
 def trans(pts,s,t):

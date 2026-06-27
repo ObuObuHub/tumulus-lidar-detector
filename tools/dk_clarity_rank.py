@@ -7,7 +7,7 @@
 import os,sys,glob,csv
 import numpy as np
 from PIL import Image,ImageFilter,ImageDraw,ImageFont
-H=os.path.expanduser('~/lidar-match')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 N=int(sys.argv[1]) if len(sys.argv)>1 else 54
 SEED=int(sys.argv[2]) if len(sys.argv)>2 else 0
 yy,xx=np.mgrid[0:128,0:128];rad=np.hypot(yy-64,xx-64)

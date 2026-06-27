@@ -1,7 +1,7 @@
 import os,sys,math,subprocess,csv,json
 import numpy as np
 from PIL import Image,ImageDraw,ImageFont
-H=os.path.expanduser('~/lidar-match');CACHE="/tmp/laki3";CS=0.5;TPX=2000
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));CACHE="/tmp/laki3";CS=0.5;TPX=2000
 # extract_marked.py [marks_json] [map_csv] [prefix]
 #   roșii -> negative dome-FP (recipe training) cu nume `domefp_<prefix>_NNN.png` (NU suprascrie alte zone)
 #   verzii -> randate @200m pt verdict în review/green_investigate_<prefix>.png
@@ -9,7 +9,7 @@ MARKS  = sys.argv[1] if len(sys.argv)>1 else '/tmp/dolj_marks.json'
 MAPCSV = sys.argv[2] if len(sys.argv)>2 else '/tmp/dolj_roundfp_map.csv'
 PREFIX = sys.argv[3] if len(sys.argv)>3 else 'cot'
 NEG_KEY= sys.argv[4] if len(sys.argv)>4 else 'red'   # 'red' (vechi) sau 'blank' (convenția verde-only)
-APP="/Applications/QGIS-final-4_0_3.app/Contents"
+APP=os.environ.get("QGIS_APP","/Applications/QGIS-final-4_0_3.app/Contents")
 ENV=dict(os.environ,DYLD_FRAMEWORK_PATH=f"{APP}/Frameworks",PROJ_DATA=f"{APP}/Resources/qgis/proj",PROJ_LIB=f"{APP}/Resources/qgis/proj",GDAL_DATA=f"{APP}/Resources/qgis/gdal")
 GT=f"{APP}/MacOS/gdaltransform"
 def trans(p,s,t):

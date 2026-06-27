@@ -5,10 +5,10 @@ import os,glob,csv,math,subprocess,json,sys
 import numpy as np
 from PIL import Image,ImageDraw,ImageFont
 import torch,torch.nn as nn
-H=os.path.expanduser('~/lidar-match');dev=torch.device('mps');N=int(sys.argv[1]) if len(sys.argv)>1 else 6
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));dev=torch.device('mps');N=int(sys.argv[1]) if len(sys.argv)>1 else 6
 R=6378137.0;C=2*math.pi*R;ORIG=-20037508.342787;ORIGY=20037508.342787;Z=17;MPP=C/(256*2**Z)
 ORGm="Q2Kmg0bQDn3rySgn";TM="/tmp/mdh_tiles";CACHE="/tmp/laki3";CS=0.5;TPX=2000
-APP="/Applications/QGIS-final-4_0_3.app/Contents"
+APP=os.environ.get("QGIS_APP","/Applications/QGIS-final-4_0_3.app/Contents")
 ENV=dict(os.environ,DYLD_FRAMEWORK_PATH=f"{APP}/Frameworks",PROJ_DATA=f"{APP}/Resources/qgis/proj",PROJ_LIB=f"{APP}/Resources/qgis/proj",GDAL_DATA=f"{APP}/Resources/qgis/gdal")
 GT=f"{APP}/MacOS/gdaltransform"
 def st2ll(e,n):

@@ -7,7 +7,7 @@ import sys,os,math,subprocess,csv
 import numpy as np
 from PIL import Image,ImageFilter
 import torch,torch.nn as nn
-H=os.path.expanduser('~/lidar-match');dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 MODEL=sys.argv[1] if len(sys.argv)>1 else f'{H}/combined_pre_linear.pt'
 LOMIN,LOMAX,LAMIN,LAMAX=20.67,22.77,45.86,46.70
 R=6378137.0;ORIG=-20037508.342787;ORIGY=20037508.342787;Z=18;MPP=2*math.pi*R/(256*2**Z)

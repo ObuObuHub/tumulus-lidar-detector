@@ -50,7 +50,7 @@ def stamp(lon,lat):
     cropr=int(half_m/mpp)  # central METERS window
     cc=Wc//2; sl=sl.crop((cc-cropr,cc-cropr,cc+cropr,cc+cropr)).resize((OUTPX,OUTPX))
     return sl,RES
-H=os.path.expanduser('~/lidar-match'); OUT=f'{H}/dataset_v2'
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__))); OUT=f'{H}/dataset_v2'
 rows=list(csv.DictReader(open(f'{H}/labeled/labels.csv')))
 from collections import defaultdict
 bag=defaultdict(list); man=open(f'{OUT}/manifest.csv','w') if os.path.isdir(OUT) else None

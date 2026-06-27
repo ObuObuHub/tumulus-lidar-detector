@@ -3,8 +3,8 @@
 # împrejurimi, pe care FP-urile (mușuroaie naturale) NU o au. Sentinel-2 L2A (10m) via Element84 STAC + COG /vsicurl.
 import os,json,subprocess,math,csv
 import numpy as np
-H=os.path.expanduser('~/lidar-match')
-APP="/Applications/QGIS-final-4_0_3.app/Contents"
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+APP=os.environ.get("QGIS_APP","/Applications/QGIS-final-4_0_3.app/Contents")
 ENV=dict(os.environ,DYLD_FRAMEWORK_PATH=f"{APP}/Frameworks",PROJ_DATA=f"{APP}/Resources/qgis/proj",PROJ_LIB=f"{APP}/Resources/qgis/proj",GDAL_DATA=f"{APP}/Resources/qgis/gdal",
          CPL_VSIL_CURL_ALLOWED_EXTENSIONS=".tif",GDAL_HTTP_MAX_RETRY="3",GDAL_HTTP_RETRY_DELAY="1",VSI_CACHE="TRUE")
 GT=f"{APP}/MacOS/gdaltransform";GTR=f"{APP}/MacOS/gdal_translate"
