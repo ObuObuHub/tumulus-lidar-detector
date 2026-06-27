@@ -10,13 +10,14 @@ H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TAG=sys.argv[1] if len(sys.argv)>1 else 'dolj'
 st=json.load(open(f"/tmp/sweep_{TAG}_state.json"))
 cands=st["cands"]
-APP=os.environ.get("QGIS_APP","/Applications/QGIS-final-4_0_3.app/Contents")
-ENV=dict(os.environ,DYLD_FRAMEWORK_PATH=f"{APP}/Frameworks",PROJ_DATA=f"{APP}/Resources/qgis/proj",PROJ_LIB=f"{APP}/Resources/qgis/proj",GDAL_DATA=f"{APP}/Resources/qgis/gdal")
-GT=f"{APP}/MacOS/gdaltransform"
+import pyproj
+_TF={}
+def _tf(s,t):
+    if (s,t) not in _TF:_TF[(s,t)]=pyproj.Transformer.from_crs(s,t,always_xy=True)
+    return _TF[(s,t)]
 def trans(pts,s,t):
     if not pts:return []
-    inp="\n".join(f"{a} {b}" for a,b in pts)+"\n";r=subprocess.run([GT,"-s_srs",s,"-t_srs",t],input=inp,capture_output=True,text=True,env=ENV)
-    return [tuple(map(float,l.split()[:2])) for l in r.stdout.strip().split("\n") if l.split()]
+    tf=_tf(s,t);return [tuple(tf.transform(a,b)) for a,b in pts]
 # dedup in metri (proiectie) la 80m
 ll=[(c[0],c[1]) for c in cands]
 en=trans(ll,"EPSG:4326","EPSG:3844") if ll else []
