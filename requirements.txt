@@ -1,5 +1,4 @@
 torch>=2.0
 numpy>=1.24
 pillow>=10.0
-# Note: coordinate transforms call a local GDAL `gdaltransform` (e.g. from QGIS) via subprocess —
-# not a pip dependency. See the APP path near the top of the tools/*.py scripts.
+pyproj>=3.6

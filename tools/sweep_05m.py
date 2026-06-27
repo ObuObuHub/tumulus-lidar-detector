@@ -18,7 +18,7 @@ import numpy as np
 from PIL import Image,ImageFilter,ImageDraw,ImageFont
 import torch,torch.nn as nn
 
-H=os.path.expanduser('~/lidar-match');dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 CACHE="/tmp/laki3";CS=0.5;TPX=2000;os.makedirs(CACHE,exist_ok=True)
 TAG=os.environ.get('TAG','dolj')
 BLOCK_KM=int(os.environ.get('BLOCK_KM','8'))
@@ -33,14 +33,14 @@ bb=os.environ.get('SWEEP_BBOX','322,429,233,336').split(',')
 E0,E1,N0,N1=[int(float(x)) for x in bb]
 STATE=f"/tmp/sweep_{TAG}_state.json"
 OUTCSV=f"{H}/review/sweep_{TAG}_candidates.csv"
-APP="/Applications/QGIS-final-4_0_3.app/Contents"
-ENV=dict(os.environ,DYLD_FRAMEWORK_PATH=f"{APP}/Frameworks",PROJ_DATA=f"{APP}/Resources/qgis/proj",PROJ_LIB=f"{APP}/Resources/qgis/proj",GDAL_DATA=f"{APP}/Resources/qgis/gdal")
-GTb=f"{APP}/MacOS/gdaltransform"
-
+import pyproj
+_TF={}
+def _tf(s,t):
+    if (s,t) not in _TF:_TF[(s,t)]=pyproj.Transformer.from_crs(s,t,always_xy=True)
+    return _TF[(s,t)]
 def trans(pts,s,t):
     if not pts: return []
-    inp="\n".join(f"{a} {b}" for a,b in pts)+"\n";r=subprocess.run([GTb,"-s_srs",s,"-t_srs",t],input=inp,capture_output=True,text=True,env=ENV)
-    return [tuple(map(float,l.split()[:2])) for l in r.stdout.strip().split("\n") if l.split()]
+    tf=_tf(s,t);return [tuple(tf.transform(a,b)) for a,b in pts]
 def hs(dem,cs,azs=(315,45,135,225,270,0),alt=35):
     gy,gx=np.gradient(dem,cs);sl=np.arctan(np.hypot(gx,gy));asp=np.arctan2(-gy,gx);o=np.zeros_like(dem);ar=math.radians(alt)
     for az in azs: azr=math.radians(360-az+90);o+=np.clip(np.sin(ar)*np.cos(sl)+np.cos(ar)*np.sin(sl)*np.cos(azr-asp),0,1)
@@ -138,7 +138,7 @@ def scan_block(e,n):
     with open(fin,'w',newline='') as fo:
         w=csv.writer(fo);w.writerow(['lon','lat'])
         for lo,la in lls:w.writerow([f"{lo:.6f}",f"{la:.6f}"])
-    subprocess.run([f"{H}/venv/bin/python",f"{H}/tools/curv_filter.py",fin,fout,f"{H}/curv_gate.json","0.70"],check=False,env=ENV)
+    subprocess.run([sys.executable,f"{H}/tools/curv_filter.py",fin,fout,f"{H}/curv_gate.json","0.70"],check=False)
     pg=[];
     try:
         for r in csv.DictReader(open(fout)):

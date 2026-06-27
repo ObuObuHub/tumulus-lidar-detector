@@ -6,14 +6,15 @@
 import os,sys,subprocess,math,csv,zipfile
 import numpy as np
 CACHE="/tmp/laki3";CS=0.5;TPX=2000;os.makedirs(CACHE,exist_ok=True)
-APP="/Applications/QGIS-final-4_0_3.app/Contents"
-ENV=dict(os.environ,DYLD_FRAMEWORK_PATH=f"{APP}/Frameworks",PROJ_DATA=f"{APP}/Resources/qgis/proj",PROJ_LIB=f"{APP}/Resources/qgis/proj",GDAL_DATA=f"{APP}/Resources/qgis/gdal")
-GTb=f"{APP}/MacOS/gdaltransform"
+import pyproj
+_TF={}
+def _tf(s,t):
+    if (s,t) not in _TF:_TF[(s,t)]=pyproj.Transformer.from_crs(s,t,always_xy=True)
+    return _TF[(s,t)]
 def trans_batch(pts,s,t):
-    inp="\n".join(f"{a} {b}" for a,b in pts)+"\n";r=subprocess.run([GTb,"-s_srs",s,"-t_srs",t],input=inp,capture_output=True,text=True,env=ENV)
-    out=[]
-    for l in r.stdout.strip().split("\n"):
-        p=l.split();out.append((float(p[0]),float(p[1])) if len(p)>=2 else (None,None))
+    tf=_tf(s,t);out=[]
+    for a,b in pts:
+        x,y=tf.transform(a,b);out.append((x,y) if math.isfinite(x) and math.isfinite(y) else (None,None))
     return out
 def load_one(nkm,ekm):
     NUME=f"{nkm}_{ekm}";npy=f"{CACHE}/{NUME}.npy"

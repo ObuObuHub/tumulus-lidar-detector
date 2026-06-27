@@ -8,16 +8,18 @@ import os,sys,math,subprocess,csv
 import numpy as np
 from PIL import Image,ImageFilter,ImageDraw,ImageFont
 import torch,torch.nn as nn
-H=os.path.expanduser('~/lidar-match');dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 CLON=float(sys.argv[1]);CLAT=float(sys.argv[2]);KM=float(sys.argv[3]) if len(sys.argv)>3 else 4.0
 MODEL=sys.argv[4] if len(sys.argv)>4 else f'{H}/combined_cnn.pt'
 CACHE="/tmp/laki3";CS=0.5;TPX=2000;os.makedirs(CACHE,exist_ok=True)
-APP="/Applications/QGIS-final-4_0_3.app/Contents"
-ENV=dict(os.environ,DYLD_FRAMEWORK_PATH=f"{APP}/Frameworks",PROJ_DATA=f"{APP}/Resources/qgis/proj",PROJ_LIB=f"{APP}/Resources/qgis/proj",GDAL_DATA=f"{APP}/Resources/qgis/gdal")
-GTb=f"{APP}/MacOS/gdaltransform"
+import pyproj
+_TF={}
+def _tf(s,t):
+    if (s,t) not in _TF:_TF[(s,t)]=pyproj.Transformer.from_crs(s,t,always_xy=True)
+    return _TF[(s,t)]
 def trans(pts,s,t):
-    inp="\n".join(f"{a} {b}" for a,b in pts)+"\n";r=subprocess.run([GTb,"-s_srs",s,"-t_srs",t],input=inp,capture_output=True,text=True,env=ENV)
-    return [tuple(map(float,l.split()[:2])) for l in r.stdout.strip().split("\n") if l.split()]
+    if not pts:return []
+    tf=_tf(s,t);return [tuple(tf.transform(a,b)) for a,b in pts]
 def load_one(nk,ek):
     p=f"{CACHE}/{nk}_{ek}.npy"
     if os.path.exists(p):
@@ -97,7 +99,7 @@ lls=trans([(xll0+px*CS,ytop0-py*CS) for px,py,s in kept],"EPSG:3844","EPSG:4326"
 with open('/tmp/_zone_in.csv','w',newline='') as fo:
     w=csv.writer(fo);w.writerow(['lon','lat'])
     for lo,la in lls:w.writerow([lo,la])
-subprocess.run([f"{H}/venv/bin/python",f"{H}/tools/curv_filter.py","/tmp/_zone_in.csv","/tmp/_zone_gate.csv",f"{H}/curv_gate.json","0.70"],check=False)
+subprocess.run([sys.executable,f"{H}/tools/curv_filter.py","/tmp/_zone_in.csv","/tmp/_zone_gate.csv",f"{H}/curv_gate.json","0.70"],check=False)
 gate=list(csv.DictReader(open('/tmp/_zone_gate.csv')))
 rows=[]
 for (px,py,s),(lo,la),g in zip(kept,lls,gate):

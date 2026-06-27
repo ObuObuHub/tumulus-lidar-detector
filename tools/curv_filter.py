@@ -5,11 +5,11 @@
 # Taie fals-pozitivele compacte/aspre (mușuroaie naturale, arături) pastrand domurile netede (tumuli).
 # Validat held-out Catane: 47->16 FP la recall 100% (prag 0.70 calibrat pe tumuli confirmati, min 0.713).
 import sys,os,subprocess,csv
-H=os.path.expanduser('~/lidar-match')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DET=sys.argv[1];OUT=sys.argv[2]
 GATE=sys.argv[3] if len(sys.argv)>3 else f'{H}/curv_gate.json'
 THR=sys.argv[4] if len(sys.argv)>4 else '0.70'
-PY=f'{H}/venv/bin/python'
+PY=sys.executable
 tmp=OUT+'.feat.tmp'
 subprocess.run([PY,f'{H}/tools/curv_features3.py',DET,tmp],check=True)  # v3 scale-adaptiv (24.06): merge pe movile mari ȘI mici
 subprocess.run([PY,f'{H}/tools/curv_gate.py','apply',GATE,tmp,OUT,THR],check=True)

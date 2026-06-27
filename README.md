@@ -34,15 +34,15 @@ The 2 m normalisation is what makes recall robust across 0.5–1 m sources and e
 ```bash
 python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-# survey a zone (centre lon, lat, half-size km):
+# survey a zone (centre lon, lat, box side in km):
 ./venv/bin/python tools/scan_zone.py 23.522 44.043 8
 # blind county sweep (resumable, disk-managed):
 TAG=dolj SWEEP_BBOX="322,429,233,336" ./venv/bin/python tools/sweep_05m.py
-# evaluate against a ground-truth CSV:
+# evaluate against your own ground-truth CSV (columns lon,lat; not shipped — see Ethics):
 ./venv/bin/python tools/benchmark.py ground_truth.csv combined_cnn.pt
 ```
 The scripts read 0.5 m DTM tiles from the public LAKI III service and cache them under `/tmp/laki3`.
-Coordinate transforms use a local GDAL (QGIS) `gdaltransform`; adjust the `APP` path in the scripts.
+Coordinate transforms use `pyproj` (EPSG:4326 ↔ EPSG:3844); no system GDAL/QGIS required.
 
 ## Ethics
 
