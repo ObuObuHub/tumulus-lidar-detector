@@ -1,7 +1,7 @@
 import math,subprocess,os,csv
 from PIL import Image
 R=6378137.0; C=2*math.pi*R; ORIG=-20037508.342787; ORIGY=20037508.342787
-HOME=os.path.expanduser('~'); OUT=f"{HOME}/lidar-match/vest_pilot"
+REPO=os.path.dirname(os.path.dirname(os.path.abspath(__file__))); OUT=f"{REPO}/vest_pilot"
 BASEDIR=f"{OUT}/base"; TILEDIR="/tmp/hegyi_tiles"
 os.makedirs(BASEDIR,exist_ok=True); os.makedirs(TILEDIR,exist_ok=True)
 
@@ -36,7 +36,7 @@ def tile(svc,org,z,col,row):
     _cache[k]=im; return im
 
 WIN=384; HALF=WIN//2
-rows=list(csv.DictReader(open(f"{HOME}/lidar-match/vest_tumuli.csv")))
+rows=list(csv.DictReader(open(f"{REPO}/vest_tumuli.csv")))
 def slug(s): return ''.join(c if c.isalnum() else '_' for c in (s or 'NA')).strip('_')[:20]
 man=[]; nocov=0
 for r in rows:

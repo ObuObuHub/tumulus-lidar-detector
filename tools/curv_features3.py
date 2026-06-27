@@ -127,10 +127,10 @@ def main():
     extra=list(rdr.fieldnames or ['lon','lat'])
     if not rows:
         with open(outp,'w',newline='') as fo:csv.writer(fo).writerow(extra+FEATS)
-        print("0 puncte -> doar antet",flush=True);return
+        print("0 points -> header only",flush=True);return
     cols={c.lower():c for c in extra};lonc=cols.get('lon');latc=cols.get('lat')
     pts=[(float(r[lonc]),float(r[latc])) for r in rows]
-    print(f"{len(pts)} puncte; transform...",flush=True);st=trans_batch(pts,"EPSG:4326","EPSG:3844")
+    print(f"{len(pts)} points; transforming...",flush=True);st=trans_batch(pts,"EPSG:4326","EPSG:3844")
     with open(outp,'w',newline='') as fo:
         wr=csv.writer(fo);wr.writerow(extra+FEATS);ok=0;na=0
         for i,(r,(e,n)) in enumerate(zip(rows,st)):

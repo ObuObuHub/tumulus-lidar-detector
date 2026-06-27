@@ -101,7 +101,9 @@ def apply(gate_json,feat_csv,out_csv,thr=None):
                 wr.writerow([r[c] for c in rows[0].keys()]+[f"{p:.4f}",k])
             except:
                 wr.writerow([r[c] for c in rows[0].keys()]+['NA',1])  # NA -> nu suprima (fail-open)
-    print(f"-> {out_csv} | scored {ok} | gate-cut {cut} (prag {thr:.3f})")
+    print(f"-> {out_csv} | scored {ok} | gate-cut {cut} (threshold {thr:.3f})")
 if __name__=='__main__':
+    if len(sys.argv)<2 or sys.argv[1] not in ('train','apply'):
+        print("usage: curv_gate.py train FEAT_CSV GATE_JSON | apply GATE_JSON FEAT_CSV OUT_CSV [THR]");sys.exit(1)
     if sys.argv[1]=='train':train(sys.argv[2],sys.argv[3])
     elif sys.argv[1]=='apply':apply(sys.argv[2],sys.argv[3],sys.argv[4],float(sys.argv[5]) if len(sys.argv)>5 else None)

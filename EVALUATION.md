@@ -163,4 +163,6 @@ mound is downsampled below ~16 px, i.e. the model keys on *morphology*, not an a
 ./venv/bin/python tools/greens_recall.py combined_cnn.pt /tmp/diverse_mounds.csv # 5b
 bash /tmp/serious_eval.sh                                                        # full r2-vs-r4 suite
 ```
+The ground-truth CSVs (`lon,lat`) and `serious_eval.sh` above are **not shipped** — mound coordinates are withheld (see README *Ethics*). `tools/benchmark.py` is the public entry point: supply your own held-out `lon,lat` CSV.
+
 Held-out geo-TEST is scored once inside `tools/train_combined.py`; do not tune on it.

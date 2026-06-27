@@ -12,6 +12,7 @@ H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));dev=torch.device('
 CLON=float(sys.argv[1]);CLAT=float(sys.argv[2]);KM=float(sys.argv[3]) if len(sys.argv)>3 else 4.0
 MODEL=sys.argv[4] if len(sys.argv)>4 else f'{H}/combined_cnn.pt'
 CACHE="/tmp/laki3";CS=0.5;TPX=2000;os.makedirs(CACHE,exist_ok=True);os.makedirs(f'{H}/review',exist_ok=True)
+[os.remove(_p) for _p in ('/tmp/zone_dets.csv',f'{H}/review/zone_view.jpg',f'{H}/review/zone_board.jpg') if os.path.exists(_p)]  # clear stale outputs so a no-coverage run can't leak a previous area
 import pyproj
 _TF={}
 def _tf(s,t):
@@ -57,9 +58,9 @@ for nk in range(n0,n1+1):
         d=load_one(nk,ek)
         if d is None:continue
         nt+=1;ox=int((ek*1000-xll0)/CS);oy=int((ytop0-(nk+1)*1000)/CS);mos[oy:oy+TPX,ox:ox+TPX]=d[:TPX,:TPX]
-if nt==0:print("EROARE: nicio dala LAKI3 (zona neacoperita?)");sys.exit(2)
+if nt==0:print("ERROR: no LAKI3 tiles - area not covered (LAKI III is Romania only), OR the tile download failed (check network / geoportal.ancpi.ro / that curl is installed)");sys.exit(2)
 area=np.isfinite(mos).sum()*CS*CS/1e6
-print(f"mozaic {W}x{Hh} ({KM}km, {nt} dale, ~{area:.1f}km²) model {os.path.basename(MODEL)}",flush=True)
+print(f"mosaic {W}x{Hh} ({KM}km, {nt} tiles, ~{area:.1f}km²) model {os.path.basename(MODEL)}",flush=True)
 f=int(round(2.0/CS));hw=int(40/CS)
 class Net(nn.Module):
     def __init__(s):
@@ -74,7 +75,7 @@ for py in range(hw,Hh-hw,step):
         d2=downs(w,f);h=hs(d2,CS*f);lo,hi=np.percentile(h,2),np.percentile(h,98)
         if hi-lo<1e-6:continue
         batch.append(homog(np.asarray(Image.fromarray(np.clip((h-lo)/(hi-lo)*255,0,255).astype('uint8')).resize((128,128)),np.uint8)));pos.append((px,py))
-print(f"{len(batch)} ferestre; scorez...",flush=True)
+print(f"{len(batch)} windows; scoring...",flush=True)
 sc=[];X=torch.tensor(np.array(batch,dtype=np.uint8))
 with torch.no_grad():
     for k in range(0,len(X),512):sc.extend(torch.sigmoid(net(X[k:k+512].unsqueeze(1).float().to(dev)/255.)).cpu().numpy().tolist())
@@ -86,7 +87,7 @@ for k in order:
     px,py=pos[k]
     if any((px-q[0])**2+(py-q[1])**2<(80/CS)**2 for q in kept):continue
     kept.append((px,py,float(sc[k])))
-print(f"{len(kept)} detectii (NMS 80m, >=0.5)",flush=True)
+print(f"{len(kept)} detections (NMS 80m, >=0.5)",flush=True)
 # coerenta
 def coh22(px,py,r_m=22):
     r=int(r_m/CS);w=mos[py-r:py+r,px-r:px+r]
@@ -114,7 +115,7 @@ with open('/tmp/zone_dets.csv','w',newline='') as fo:
     for r in rows:w.writerow([f"{r['lon']:.6f}",f"{r['lat']:.6f}",f"{r['score']:.3f}",f"{r['coh']:.3f}",f"{r['pgate']:.3f}",int(r['keep'])])
 cand=[r for r in rows if r['score']>=0.85]
 keptc=[r for r in rows if r['keep']]
-print(f"candidati >=0.85: {len(cand)} -> dupa filtre (coerenta+curbura): {len(keptc)} pastrati",flush=True)
+print(f"candidates >=0.85: {len(cand)} -> after coherence+curvature filters: {len(keptc)} kept",flush=True)
 # ===== HEATMAP wide =====
 DW=1600;fac=max(1,W//DW);dw=W//fac;dh=Hh//fac
 dem=mos[:dh*fac,:dw*fac].reshape(dh,fac,dw,fac).mean((1,3));dem=np.nan_to_num(dem,nan=np.nanmedian(dem))
@@ -129,8 +130,12 @@ accb=np.asarray(Image.fromarray((acc*255).astype(np.uint8)).filter(ImageFilter.G
 warm=np.zeros((dh,dw,3),np.float32);warm[...,0]=np.clip(accb*3,0,1);warm[...,1]=np.clip(accb*1.6-0.3,0,1);al=np.clip(accb*1.4,0,1)[...,None]
 disp=(basef*(1-al*0.5)+warm*255*al*0.5).astype(np.uint8)
 img=Image.fromarray(disp).convert('RGB');dr=ImageDraw.Draw(img)
-try:ft=ImageFont.truetype('/System/Library/Fonts/Supplemental/Arial Bold.ttf',16);ftb=ImageFont.truetype('/System/Library/Fonts/Supplemental/Arial Bold.ttf',22)
-except:ft=ftb=ImageFont.load_default()
+def _font(sz):
+    for p in ('/System/Library/Fonts/Supplemental/Arial Bold.ttf','/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf','DejaVuSans-Bold.ttf'):
+        try:return ImageFont.truetype(p,sz)
+        except:continue
+    return ImageFont.load_default()
+ft=_font(16);ftb=_font(22)
 for r in cand:
     x=r['px']//fac;y=r['py']//fac
     if r['keep']:dr.ellipse([x-11,y-11,x+11,y+11],outline=(0,255,0),width=4)
@@ -138,8 +143,8 @@ for r in cand:
 for i,r in enumerate([c for c in cand if c['keep']],1):
     x=r['px']//fac;y=r['py']//fac;dr.text((x+12,y-9),f"{i}",fill=(150,255,150),font=ft)
 hd=Image.new('RGB',(img.size[0],52),(10,10,12));hdr_d=ImageDraw.Draw(hd)
-hdr_d.text((8,4),f"SCAN {CLAT},{CLON} ~{area:.0f}km² — model producție + filtre coerență&curbură",fill=(255,255,255),font=ftb)
-hdr_d.text((8,30),f"VERDE = {len(keptc)} candidați păstrați (movile probabile)   ×gri = {len(cand)-len(keptc)} suprimate (FP: linii/mușuroaie aspre)",fill=(150,255,150),font=ft)
+hdr_d.text((8,4),f"SCAN {CLAT},{CLON} ~{area:.0f}km² — production model + coherence&curvature filters",fill=(255,255,255),font=ftb)
+hdr_d.text((8,30),f"GREEN = {len(keptc)} kept candidates (probable mounds)   × grey = {len(cand)-len(keptc)} suppressed (FP: lines/rough humps)",fill=(150,255,150),font=ft)
 out=Image.new('RGB',(img.size[0],img.size[1]+52),(10,10,12));out.paste(hd,(0,0));out.paste(img,(0,52))
 out.save(f'{H}/review/zone_view.jpg',quality=84)
 print(f"-> review/zone_view.jpg {out.size} ({os.path.getsize(H+'/review/zone_view.jpg')//1024}KB)")
@@ -152,11 +157,11 @@ def crop(px,py,m=160,o=150):
     return np.asarray(Image.fromarray(np.clip((sh2-l2)/(h2-l2+1e-6)*255,0,255).astype('uint8')).resize((o,o)),np.uint8)
 if keptc_sorted:
     cols=8;rows_n=(len(keptc_sorted)+cols-1)//cols;c2=150;bv=Image.new('RGB',(cols*c2,rows_n*(c2+20)+24),(15,15,15));bd=ImageDraw.Draw(bv)
-    bd.text((6,4),f"Candidați păstrați (movile probabile) — {CLAT},{CLON}",fill=(150,255,150),font=ft)
+    bd.text((6,4),f"Kept candidates (probable mounds) — {CLAT},{CLON}",fill=(150,255,150),font=ft)
     for i,r in enumerate(keptc_sorted):
         cr=crop(r['px'],r['py']);x=(i%cols)*c2;y=(i//cols)*(c2+20)+24
         if cr is not None:bv.paste(Image.fromarray(cr),(x,y+16))
         bd.text((x+3,y+1),f"{i+1}  s{r['score']:.2f}",fill=(150,255,150),font=ft)
-    bv.save(f'{H}/review/zone_board.jpg',quality=85);print(f"-> review/zone_board.jpg ({len(keptc_sorted)} candidați)")
+    bv.save(f'{H}/review/zone_board.jpg',quality=85);print(f"-> review/zone_board.jpg ({len(keptc_sorted)} candidates)")
 else:
-    print("(0 candidați păstrați — zonă curată / fără movile evidente)")
+    print("(0 candidates kept - clean area / no obvious mounds)")

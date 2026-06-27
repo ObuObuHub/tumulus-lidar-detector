@@ -1,7 +1,7 @@
 import math,subprocess,os,csv
 from PIL import Image
 R=6378137.0; C=2*math.pi*R; ORIG=-20037508.342787; ORIGY=20037508.342787
-HOME=os.path.expanduser('~'); DS=f"{HOME}/lidar-match/dataset"
+REPO=os.path.dirname(os.path.dirname(os.path.abspath(__file__))); DS=f"{REPO}/dataset"
 for d in ['positives','positives_base','positives_aug']:
     os.makedirs(f"{DS}/{d}",exist_ok=True)
 TILEDIR={'banat':'/tmp/banat_tiles','hegyi':'/tmp/hegyi_tiles'}
@@ -28,14 +28,14 @@ def window(lon,lat,svc,org,z,win,cachedir):
 WIN=384
 pos=[]
 # 1) WESTERN clear (already have base384)
-vp=f"{HOME}/lidar-match/vest_pilot"
+vp=f"{REPO}/vest_pilot"
 for m in csv.DictReader(open(f"{vp}/manifest.csv")):
     if float(m['black'])<=0.4 and float(m['mound'])>=10:
         src=f"{vp}/{m['base']}"; name=f"W_{os.path.basename(m['base'])}"
         Image.open(src).save(f"{DS}/positives_base/{name}")
         pos.append({'src':'vest','jud':m['jud'],'res':m['res'],'lon':m['lon'],'lat':m['lat'],'base':name})
 # 2) TIMIS clear top-15 (rebuild base384 from Banat z17, cached)
-tp=f"{HOME}/lidar-match/timis_pilot"
+tp=f"{REPO}/timis_pilot"
 for m in csv.DictReader(open(f"{tp}/manifest_ranked.csv")):
     if int(m['rank'])<=15:
         cv=window(float(m['lon']),float(m['lat']),"Banat_3_5_H_tif","Q2Kmg0bQDn3rySgn",17,WIN,'/tmp/banat_tiles')

@@ -43,7 +43,7 @@ TAG=dolj SWEEP_BBOX="322,429,233,336" ./venv/bin/python tools/sweep_05m.py
 # evaluate against your own ground-truth CSV (columns lon,lat; not shipped — see Ethics):
 ./venv/bin/python tools/benchmark.py ground_truth.csv combined_cnn.pt
 ```
-The scripts read 0.5 m DTM tiles from the public LAKI III service and cache them under `/tmp/laki3`.
+The scripts fetch 0.5 m DTM tiles on demand (Romania only, ANCPI LAKI III) via `curl` into `/tmp/laki3`, cached afterwards — `curl` must be on PATH. A first run downloads ~1 tile per km (an 8 km box ≈ 64 tiles); the default 2 km box takes ~1–3 min, mostly download. CPU-only works fine; a full county sweep is resumable and runs over hours.
 Coordinate transforms use `pyproj` (EPSG:4326 ↔ EPSG:3844); no system GDAL/QGIS required.
 
 ## Ethics

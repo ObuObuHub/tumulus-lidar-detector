@@ -69,8 +69,12 @@ E0,E1,N0,N1=st["params"]["bbox"]
 lons=[c[0] for c in keep];lats=[c[1] for c in keep]
 W=1400;asp=(N1-N0)/max(E1-E0,1);Hh=int(W*asp)
 img=Image.new('RGB',(W,Hh+44),(16,18,22));dr=ImageDraw.Draw(img)
-try:ft=ImageFont.truetype('/System/Library/Fonts/Supplemental/Arial Bold.ttf',15);ftb=ImageFont.truetype('/System/Library/Fonts/Supplemental/Arial Bold.ttf',20)
-except:ft=ftb=ImageFont.load_default()
+def _font(sz):
+    for p in ('/System/Library/Fonts/Supplemental/Arial Bold.ttf','/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf','DejaVuSans-Bold.ttf'):
+        try:return ImageFont.truetype(p,sz)
+        except:continue
+    return ImageFont.load_default()
+ft=_font(15);ftb=_font(20)
 # proiecteaza lon/lat candidati in pixeli prin EPSG:3844 bbox
 def xy(e,n):
     x=int((e-E0*1000)/((E1-E0)*1000)*W);y=44+int((N1*1000-n)/((N1-N0)*1000)*Hh);return x,y

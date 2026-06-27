@@ -4,8 +4,8 @@ from PIL import Image, ImageDraw
 SVC="https://tiles.arcgis.com/tiles/Q2Kmg0bQDn3rySgn/arcgis/rest/services/Banat_3_5_H_tif/MapServer/tile"
 R=6378137.0; C=2*math.pi*R; ORIG=-20037508.342787; ORIGY=20037508.342787
 Z=17; STAMP=256; HALF=STAMP//2
-HOME=os.path.expanduser('~')
-PILOT=f"{HOME}/lidar-match/timis_pilot"
+REPO=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PILOT=f"{REPO}/timis_pilot"
 STDIR=f"{PILOT}/stamps"; TILEDIR="/tmp/banat_tiles"
 os.makedirs(STDIR,exist_ok=True); os.makedirs(TILEDIR,exist_ok=True)
 
@@ -25,7 +25,7 @@ def get_tile(col,row):
     _tilecache[key]=im
     return im
 
-rows=list(csv.DictReader(open(f"{HOME}/lidar-match/timis_tumuli.csv")))
+rows=list(csv.DictReader(open(f"{REPO}/timis_tumuli.csv")))
 manifest=[]
 def slug(s):
     return ''.join(c if c.isalnum() else '_' for c in (s or 'NA')).strip('_')[:24]

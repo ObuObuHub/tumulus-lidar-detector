@@ -10,12 +10,14 @@ H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));dev=torch.device('
 CACHE="/tmp/laki3";CS=0.5;TPX=2000
 sys.path.insert(0,f"{H}/tools")
 import curv_features2 as CF   # analyze(est,nord) -> features dict (citește din cache)
-APP=os.environ.get("QGIS_APP","/Applications/QGIS-final-4_0_3.app/Contents")
-ENV=dict(os.environ,DYLD_FRAMEWORK_PATH=f"{APP}/Frameworks",PROJ_DATA=f"{APP}/Resources/qgis/proj",PROJ_LIB=f"{APP}/Resources/qgis/proj",GDAL_DATA=f"{APP}/Resources/qgis/gdal")
-GTb=f"{APP}/MacOS/gdaltransform"
+import pyproj
+_TF={}
+def _tf(s,t):
+    if (s,t) not in _TF:_TF[(s,t)]=pyproj.Transformer.from_crs(s,t,always_xy=True)
+    return _TF[(s,t)]
 def trans(pts,s,t):
-    inp="\n".join(f"{a} {b}" for a,b in pts)+"\n";r=subprocess.run([GTb,"-s_srs",s,"-t_srs",t],input=inp,capture_output=True,text=True,env=ENV)
-    return [tuple(map(float,l.split()[:2])) for l in r.stdout.strip().split("\n") if l.split()]
+    if not pts:return []
+    tf=_tf(s,t);return [tuple(tf.transform(a,b)) for a,b in pts]
 def hs(dem,cs,azs=(315,45,135,225,270,0),alt=35):
     gy,gx=np.gradient(dem,cs);sl=np.arctan(np.hypot(gx,gy));asp=np.arctan2(-gy,gx);o=np.zeros_like(dem);ar=math.radians(alt)
     for az in azs: azr=math.radians(360-az+90);o+=np.clip(np.sin(ar)*np.cos(sl)+np.cos(ar)*np.sin(sl)*np.cos(azr-asp),0,1)

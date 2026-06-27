@@ -15,6 +15,6 @@ subprocess.run([PY,f'{H}/tools/curv_features3.py',DET,tmp],check=True)  # v3 sca
 subprocess.run([PY,f'{H}/tools/curv_gate.py','apply',GATE,tmp,OUT,THR],check=True)
 n=sum(1 for _ in open(OUT))-1
 kept=sum(1 for r in csv.DictReader(open(OUT)) if r.get('keep')=='1')
-print(f"curv_filter: {n} detectii -> {kept} pastrate / {n-kept} taiate (prag {THR})")
+print(f"curv_filter: {n} detections -> {kept} kept / {n-kept} cut (threshold {THR})")
 try:os.remove(tmp)
 except:pass
