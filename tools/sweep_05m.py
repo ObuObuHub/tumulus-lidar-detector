@@ -7,7 +7,7 @@
 #   >80m => fara cusatura ratata). Procesare pe RANDURI (N ascendent), in rand pe COLOANE (E ascendent).
 # Disc: dalele descarcate de ACEST run se sterg cand raman in urma frontului (nu se mai ating de blocuri viitoare);
 #   dalele preexistente in cache NU se sterg niciodata (activ de proiect).
-# Stare: /tmp/sweep_<TAG>_state.json (blocuri facute, candidati acumulati, km2, timp, dale 404) => resume curat.
+# Stare: /tmp/sweep_<TAG>_state.json (blocks done, candidati acumulati, km2, timp, dale 404) => resume curat.
 #
 # Env:
 #   SWEEP_BBOX="e0,e1,n0,n1"  (km EPSG:3844; default Dolj 322,429,233,336)
@@ -176,7 +176,7 @@ if os.path.exists(STATE):
     try:
         st=json.load(open(STATE))
         for k in st.get("nodata",[]):NODATA.add(tuple(k))
-        print(f"RESUME: {len(st['done'])}/{st.get('blocks_total',BT)} blocuri facute, {len(st['cands'])} candidati, {st['km2']:.0f}km2 scanat",flush=True)
+        print(f"RESUME: {len(st['done'])}/{st.get('blocks_total',BT)} blocks done, {len(st['cands'])}  candidates, {st['km2']:.0f}km2 scanned",flush=True)
     except Exception as ex:print("stare corupta, repornesc:",ex)
 done=set(tuple(d) for d in st["done"])
 if st.get("t_start") is None:st["t_start"]=time.time()
@@ -188,11 +188,11 @@ def save_state():
         w=csv.writer(fo);w.writerow(['lon','lat','score','coh','pgate'])
         for c in st["cands"]:w.writerow(c)
 
-print(f"SWEEP {TAG}: bbox E{E0}-{E1} N{N0}-{N1} km | {BT} blocuri ({BLOCK_KM}km pas {STEP_TILES}) | model {os.path.basename(MODEL)} | prag {CANDTHR} | disc liber {free_gb():.0f}GB",flush=True)
+print(f"SWEEP {TAG}: bbox E{E0}-{E1} N{N0}-{N1} km | {BT} blocks ({BLOCK_KM}km step {STEP_TILES}) | model {os.path.basename(MODEL)} | threshold {CANDTHR} | free disk {free_gb():.0f}GB",flush=True)
 processed=0
 for bi,(n,e) in enumerate(blocks):
     if (n,e) in done:continue
-    if MAXBLOCKS and processed>=MAXBLOCKS:print(f"MAXBLOCKS={MAXBLOCKS} atins, opresc.",flush=True);break
+    if MAXBLOCKS and processed>=MAXBLOCKS:print(f"MAXBLOCKS={MAXBLOCKS} reached, stopping.",flush=True);break
     t0=time.time()
     # urmatorul bloc in rand (E) + urmatorul rand (N) pt prune
     row_cols=[c for c in cols if c>e]
@@ -202,7 +202,7 @@ for bi,(n,e) in enumerate(blocks):
     try:
         cands,km2=scan_block(e,n)
     except Exception as ex:
-        print(f"  [bloc {bi+1}/{BT} N{n} E{e}] EROARE: {ex}",flush=True);cands,km2=[],0.0
+        print(f"  [block {bi+1}/{BT} N{n} E{e}] ERROR: {ex}",flush=True);cands,km2=[],0.0
     dt=time.time()-t0
     st["cands"].extend(cands);st["km2"]+=km2;st["t_scan"]+=dt;done.add((n,e));st["done"].append([n,e])
     processed+=1
@@ -212,8 +212,8 @@ for bi,(n,e) in enumerate(blocks):
     save_state()
     el=st["t_scan"];nd=len(done);rate=(st["km2"]/el*60) if el>0 else 0
     rem=BT-nd;eta_h=(rem*(el/max(processed,1)))/3600
-    print(f"  [{nd}/{BT}] N{n} E{e}: {km2:.0f}km2 {len(cands)}cand {dt:.0f}s | total {st['km2']:.0f}km2 {len(st['cands'])}cand | {rate:.1f}km2/min ETA~{eta_h:.1f}h | disc {free_gb():.0f}GB rm{rm}",flush=True)
+    print(f"  [{nd}/{BT}] N{n} E{e}: {km2:.0f}km2 {len(cands)}cand {dt:.0f}s | total {st['km2']:.0f}km2 {len(st['cands'])}cand | {rate:.1f}km2/min ETA~{eta_h:.1f}h | disk {free_gb():.0f}GB rm{rm}",flush=True)
 
 save_state()
-print(f"\n=== SWEEP {TAG} TERMINAT (sau MAXBLOCKS): {len(done)}/{BT} blocuri, {st['km2']:.0f}km2, {len(st['cands'])} candidati bruti -> {OUTCSV}",flush=True)
-print(f"    timp scanare {st['t_scan']/3600:.1f}h | ruleaza finalize_sweep.py {TAG} pt dedup + descoperiri + harta",flush=True)
+print(f"\n=== SWEEP {TAG} DONE (or MAXBLOCKS): {len(done)}/{BT} blocks, {st['km2']:.0f}km2, {len(st['cands'])} raw candidates -> {OUTCSV}",flush=True)
+print(f"    scan time {st['t_scan']/3600:.1f}h | run finalize_sweep.py {TAG} for dedup + discoveries + map",flush=True)
