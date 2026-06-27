@@ -27,7 +27,7 @@ for i in order:
     e,n=en[i]
     if any((e-ke)**2+(n-kn)**2<80*80 for ke,kn in kept_en):continue
     keep.append(cands[i]);kept_en.append((e,n))
-print(f"{len(cands)} bruti -> {len(keep)} dupa dedup 80m")
+print(f"{len(cands)} raw -> {len(keep)} after dedup 80m")
 OUT=f"{H}/review/sweep_{TAG}_final.csv"
 with open(OUT,'w',newline='') as fo:
     w=csv.writer(fo);w.writerow(['lon','lat','score','coh','pgate'])
@@ -56,7 +56,7 @@ if os.path.exists(rb):
             if 20<lo<30 and 43<la<48:kll.append((lo,la))
         except:pass
 ken=np.array(trans(kll,"EPSG:4326","EPSG:3844")) if kll else np.empty((0,2))
-print(f"movile cunoscute (excludere descoperiri): {len(kll)}")
+print(f"known mounds (to flag discoveries): {len(kll)}")
 disc=[]
 for c,(e,n) in zip([k for k in sorted(keep,key=lambda r:-r[2])],[trans([(k[0],k[1])],"EPSG:4326","EPSG:3844")[0] for k in sorted(keep,key=lambda r:-r[2])]):
     if ken.shape[0]==0 or np.min((ken[:,0]-e)**2+(ken[:,1]-n)**2)>=120*120:disc.append(c)
@@ -64,7 +64,7 @@ OUTD=f"{H}/review/sweep_{TAG}_discoveries.csv"
 with open(OUTD,'w',newline='') as fo:
     w=csv.writer(fo);w.writerow(['lon','lat','score','coh','pgate'])
     for c in disc:w.writerow(c)
-print(f"-> {OUTD} ({len(disc)} descoperiri / {len(keep)} candidati)")
+print(f"-> {OUTD} ({len(disc)} discoveries / {len(keep)} candidates)")
 # harta ansamblu
 E0,E1,N0,N1=st["params"]["bbox"]
 lons=[c[0] for c in keep];lats=[c[1] for c in keep]
@@ -89,7 +89,7 @@ for c,(e,n) in zip(ken_all,en_all):
     r=3 if c[2]>=0.85 else 2
     dr.ellipse([x-r,y-r,x+r,y+r],fill=col)
 dr.rectangle([0,0,W,42],fill=(10,10,12))
-dr.text((8,4),f"SWEEP {TAG.upper()} 0.5m — {len(keep)} candidati ({st['km2']:.0f}km2, {len(st['done'])}/{st['blocks_total']} blocuri)",fill=(255,255,255),font=ftb)
-dr.text((8,24),f"verde = langa movila cunoscuta   portocaliu = posibila descoperire ({len(disc)})",fill=(180,220,180),font=ft)
+dr.text((8,4),f"SWEEP {TAG.upper()} 0.5m — {len(keep)} candidates ({st['km2']:.0f}km2, {len(st['done'])}/{st['blocks_total']} blocks)",fill=(255,255,255),font=ftb)
+dr.text((8,24),f"green = near a known mound   orange = possible discovery ({len(disc)})",fill=(180,220,180),font=ft)
 OUTM=f"{H}/review/sweep_{TAG}_map.jpg"
 img.save(OUTM,quality=88);print(f"-> {OUTM}")
