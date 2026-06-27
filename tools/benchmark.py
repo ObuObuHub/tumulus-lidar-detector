@@ -7,7 +7,7 @@ import os,sys,math,subprocess,csv
 import numpy as np
 from PIL import Image,ImageFilter
 import torch,torch.nn as nn
-H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));dev=torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
 GT=sys.argv[1];MODEL=sys.argv[2] if len(sys.argv)>2 else f'{H}/combined_cnn.pt';MATCH=float(sys.argv[3]) if len(sys.argv)>3 else 50.0
 CACHE="/tmp/laki3";CS=0.5;os.makedirs(CACHE,exist_ok=True)
 import pyproj

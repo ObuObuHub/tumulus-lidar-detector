@@ -18,8 +18,8 @@ import numpy as np
 from PIL import Image,ImageFilter,ImageDraw,ImageFont
 import torch,torch.nn as nn
 
-H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));dev=torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
-CACHE="/tmp/laki3";CS=0.5;TPX=2000;os.makedirs(CACHE,exist_ok=True)
+H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)));dev=torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
+CACHE="/tmp/laki3";CS=0.5;TPX=2000;os.makedirs(CACHE,exist_ok=True);os.makedirs(f'{H}/review',exist_ok=True)
 TAG=os.environ.get('TAG','dolj')
 BLOCK_KM=int(os.environ.get('BLOCK_KM','8'))
 STEP_TILES=int(os.environ.get('STEP_TILES','7'))      # suprapunere = BLOCK_KM-STEP_TILES km

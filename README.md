@@ -3,6 +3,8 @@
 A small CNN that detects **burial mounds (tumuli)** in 0.5 m airborne-LiDAR-derived hillshade,
 for Romania's national LiDAR programme (ANCPI **LAKI III**).
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ObuObuHub/tumulus-lidar-detector/blob/main/demo.ipynb) — **run the detector on a sample area in your browser, no install** (Runtime → Run all).
+
 Its design goal is the tumuli that are easiest to overlook: mounds heavily flattened by decades of
 ploughing, surviving only as faint, low-relief domes. Rather than keying on height or prominence, it
 responds to dome **symmetry**, so a scarified mound still registers as long as its form reads as a tumulus.
