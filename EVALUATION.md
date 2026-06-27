@@ -8,6 +8,10 @@
 > **catalogue-precision is not measurable in Romania** (RAN is incomplete and poorly geo-referenced), and
 > **LiDAR alone cannot confirm a tumulus**, only fieldwork can; not even a specialist confirms from LiDAR.
 > The honest figure is *precision-on-form* (visual review of shape), not precision-against-a-catalogue.
+>
+> **Operating threshold.** Production score cutoff = **0.60**. `coh22 > 0.70` is the coherence
+> *filter* (a different quantity, not the model score); the `≥0.85` figures in 5c are raw pre-filter
+> FP counts, not the operating point.
 
 ---
 
@@ -51,7 +55,10 @@ is what makes recall resolution-robust for 0.5–1 m sources (Section 5).
   ditch/linear/anthropic. **Domes are never negatives** ("principle of form": a dome shape is a positive
   even if un-catalogued; `NODOMEFP=1` keeps `dataset_neg_domefp` out).
 
-**r4 = r2 + one more hard-negative round** (`harvest_fp_hard.py` → dome-veto → retrain `NODOMEFP=1`).
+**r4 = r2 + further hard-negative rounds** (through an `r3` intermediate; `harvest_fp_hard.py` → dome-veto
+→ retrain `NODOMEFP=1`).
+
+**RO fine-tuning.** The base model was additionally fine-tuned on Romanian tumuli.
 
 ## 3. Post-processing filters (part of the production detector)
 
@@ -89,7 +96,7 @@ Ground truth = 24 known mounds; the scan is exhaustive (no peak cherry-picking).
 > were *real un-catalogued mounds* scored against an incomplete GT. So the Catane precision column is a
 > **lower bound**; the ~88 % form-precision (Section 4) is closer to the real operating point.
 
-### 5b. Recall on 73 diverse confirmed mounds: production-faithful peak-search (`greens_recall.py`)
+### 5b. Recall on 73 diverse confirmed mounds (in-domain, overlaps the RO fine-tuning set): production-faithful peak-search (`greens_recall.py`)
 | Threshold | 0.7 | 0.66 | 0.5 | 0.4 |
 |---|---|---|---|---|
 | Recall | 64 % | 67 % | 73 % | 75 % |
@@ -106,7 +113,8 @@ mound is downsampled below ~16 px, i.e. the model keys on *morphology*, not an a
 
 ## 6. Generalisation
 
-- **Across resolution.** 0.5 m: AUROC **0.98** (excellent). 5 m: AUROC **0.60** (≈chance). Recall is
+- **Across resolution.** 0.5 m: AUROC **0.98** (excellent, but balanced-prevalence and so optimistic;
+  the honest real-prevalence figure is AUPRC 0.554, Section 5a). 5 m: AUROC **0.60** (≈chance). Recall is
   largely resolution-invariant (the 2 m normalisation), but **precision collapses ≥2–5 m**, a 40 m mound
   is ~5 px, morphology is physically gone. **Reliable band = 0.5–1 m only.**
 - **Across country (no retraining).** NL (AHN 0.5 m) AUROC 0.67–0.89 (Drenthe best); UK (EA 1 m) 0.67–0.73.
