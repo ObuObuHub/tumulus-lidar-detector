@@ -1,0 +1,18 @@
+# Whitelist release: ignore everything at root, then allow only the public model+code+docs.
+# This intentionally excludes all datasets, caches, backup checkpoints, AND every
+# coordinate/label/discovery file (looting safety + size). Do NOT remove the leading /* line.
+/*
+!/.gitignore
+!/LICENSE
+!/README.md
+!/EVALUATION.md
+!/MODEL.md
+!/requirements.txt
+!/combined_cnn.pt
+!/curv_gate.json
+!/tools/
+
+# Within the allowed tools/ dir, still drop caches and compiled files
+tools/__pycache__/
+**/__pycache__/
+*.pyc
