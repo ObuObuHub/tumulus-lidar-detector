@@ -11,6 +11,7 @@
 !/combined_cnn.pt
 !/curv_gate.json
 !/demo.ipynb
+!/assets/
 !/tools/
 
 # Within the allowed tools/ dir, still drop caches and compiled files
