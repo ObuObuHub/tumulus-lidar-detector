@@ -117,9 +117,11 @@ mound is downsampled below ~16 px, i.e. the model keys on *morphology*, not an a
   the honest real-prevalence figure is AUPRC 0.554, Section 5a). 5 m: AUROC **0.60** (≈chance). Recall is
   largely resolution-invariant (the 2 m normalisation), but **precision collapses ≥2–5 m**, a 40 m mound
   is ~5 px, morphology is physically gone. **Reliable band = 0.5–1 m only.**
-- **Across country (no retraining).** NL (AHN 0.5 m) AUROC 0.67–0.89 (Drenthe best); UK (EA 1 m) 0.67–0.73.
-  **Recall generalises, dome morphology is universal.** The RO curvature gate does **not** transfer
-  (it is scale/terrain-calibrated); coherence partially does.
+- **Across country (no retraining).** NL (AHN 0.5 m): on 97 public OSM barrows in Drenthe vs hard
+  peak-searched controls, the RO production window (80 m) does **not** transfer (AUROC 0.54, Dutch barrows
+  ~10–15 m are below that scale); scale-matched (32–80 m) it separates barrows from terrain at AUROC
+  **0.862** (3% control rate above 0.5). UK (EA 1 m) 0.67–0.73. **Recognition generalises; scale and
+  precision tuning are RO-specific** (curvature gate does not transfer, coherence partially does).
 
 ## 7. Known limitations & failure modes
 
