@@ -46,8 +46,9 @@ is what makes recall resolution-robust for 0.5–1 m sources (Section 5).
   and caused field over-firing.
 - **Augmentation:** 4 rotations × 2 flips (8×). Single-scale. Translation-jitter is available
   (`JITTER` env) but **not** in the production weights, it neither helped recall nor survived the gate.
-- **Split:** geographically **disjoint groups**, per-CRS (RO lon/lat, DK UTM 25832), ≈70/15/15
-  train/val/**TEST**. The geo-TEST is scored **once**, never tuned on, this is the anti-leakage guarantee.
+- **Split:** **positives** held out by geographically **disjoint groups** (per-CRS, ≈70/15/15), scored
+  **once**. Negatives are split randomly; tested (geo + 200 m buffer vs random) → AUROC unchanged
+  (0.977↔0.979), so no negative-side leakage.
 - **Positives (~21.7 k):** 21 565 DK *Rundhøj* (Denmark, registry-confirmed) + 73 RO + 73 MDH (Arad) +
   11 Dobrogea. **Heavily DK-dominated**, see Limitations.
 - **Negatives (~52 k):** terrain background (plain/hill/terrace/village ~25 k) + **hard-negative mining**
@@ -73,10 +74,11 @@ Effect (held-out floodplain, the hardest FP terrain): 58 raw firings ≥0.85 →
 
 Blind sweep of **all 10 737 km²** of 0.5 m coverage over Dolj (production pipeline: single-scale 80 m + NMS
 + coherence + curvature, threshold 0.60) → **274 candidates** (80 m dedup). On visual review of every
-candidate, **≈32 had non-tumular form** (mostly compact deep ploughing) → **~88 % precision on form**.
+candidate, **≈32 had non-tumular form** (mostly compact deep ploughing) → **~88 % precision on form**
+(242/274; 95 % Wilson CI **84–92 %**).
 
-**Caveat: form is not confirmation.** LiDAR cannot confirm a tumulus, only fieldwork can. So 88 % is
-*looks-like-a-mound*, not *is-a-mound*.
+**Caveat: form is not confirmation.** LiDAR cannot confirm a tumulus, only fieldwork can — and this is a
+**single-rater** review (the author), no blind second rater yet. So 88 % is *looks-like-a-mound*.
 
 ## 5. Held-out metrics
 
@@ -92,6 +94,8 @@ Ground truth = 24 known mounds; the scan is exhaustive (no peak cherry-picking).
 **AUPRC = 0.554** at real prevalence. **r2→r4 improved AUPRC 0.517→0.554 and cut FP density ~77 %**
 (recall-max 169→38 FP) at the cost of 2 mounds (24/24→21/24 reachable). FP↓ was the declared priority.
 
+> **n = 24 → wide CIs (95 % Wilson):** recall 62 % = **43–79 %**, 29 % = 15–49 %, 88 % = 69–96 %. Indicative, not precise.
+
 > **Why "precision 60 %" understates the truth.** The 10-GT → 24-GT correction showed most "FP" near Catane
 > were *real un-catalogued mounds* scored against an incomplete GT. So the Catane precision column is a
 > **lower bound**; the ~88 % form-precision (Section 4) is closer to the real operating point.
@@ -104,6 +108,9 @@ Ground truth = 24 known mounds; the scan is exhaustive (no peak cherry-picking).
 Recall **plateaus at ~75 %**: on *well-formed* large mounds (Catane 0.5 m, gold-RAN) recall is ~100 %;
 the missing ~25 % are small/eroded mounds (Section 7).
 
+> **Peak-search recall** (max score within ±70 m of a *known* mound), not blind-scan → optimistic vs 5a, and
+> in-domain. The "~100 % on well-formed mounds" is a peak-search figure. n = 73 → ±~11 pts (73 % = 61–82 %).
+
 ### 5c. FP density on 5 held-out non-mound zones, r2→r4 (≥0.85, pre-filter)
 plain 23→0 · terrace 4→0 · hills 8→4 · floodplain1 58→1 · floodplain2 10→1. **Total 103→6.**
 
@@ -113,8 +120,8 @@ mound is downsampled below ~16 px, i.e. the model keys on *morphology*, not an a
 
 ## 6. Generalisation
 
-- **Across resolution.** 0.5 m: AUROC **0.98** (excellent, but balanced-prevalence and so optimistic;
-  the honest real-prevalence figure is AUPRC 0.554, Section 5a). 5 m: AUROC **0.60** (≈chance). Recall is
+- **Across resolution.** 0.5 m: AUROC **0.98** (optimistic: balanced-prevalence + ~99 % DK test positives →
+  mostly *DK-vs-background*; honest figure = AUPRC 0.554, §5a). 5 m: AUROC **0.60** (≈chance). Recall is
   largely resolution-invariant (the 2 m normalisation), but **precision collapses ≥2–5 m**, a 40 m mound
   is ~5 px, morphology is physically gone. **Reliable band = 0.5–1 m only.**
 - **Across country (no retraining).** NL (AHN 0.5 m): on 97 public OSM barrows in Drenthe vs hard

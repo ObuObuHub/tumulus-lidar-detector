@@ -9,8 +9,9 @@ Its design goal is the tumuli that are easiest to overlook: mounds heavily flatt
 ploughing, surviving only as faint, low-relief domes. Rather than keying on height or prominence, it
 responds to dome **symmetry**, so a scarified mound still registers as long as its form reads as a tumulus.
 On a blind sweep of an entire county (10,737 km² of 0.5 m LiDAR), ~88 % of flagged candidates had tumular
-form on review, with ~100 % recall on well-formed mounds. Form is not confirmation: only fieldwork settles
-a tumulus. Full numbers and limits: **[EVALUATION.md](EVALUATION.md)**.
+form (242/274, single-rater); recall on well-formed mounds is ~100 % (*peak-search, in-domain*; blind recall
+is lower — see EVALUATION §5). Form is not confirmation: only fieldwork settles a tumulus. Full numbers and
+limits: **[EVALUATION.md](EVALUATION.md)**.
 
 ## What's here
 

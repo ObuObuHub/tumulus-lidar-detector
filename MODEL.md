@@ -1,5 +1,9 @@
 # Model: detector tumuli LiDAR (notă scurtă, v1 baseline)
 
+> ⚠ **„Antrenare"/„Rezultate" de mai jos = baseline v1–v3 (istoric).** Producția = **r4** (~21,7 k poz,
+> pos_weight=1.0, hard-neg + dome-veto) — vezi „EVOLUȚIE → r4" la final + **[EVALUATION.md](EVALUATION.md)**.
+> („0,70" din text = pragul coh22, nu scorul gate.)
+
 ## Sarcină
 Clasificare binară pe stampe: **movilă (tumul) vs non-movilă**. Primul pas spre un detector (fereastră glisantă), baseline „underfit by design", de la simplu la complex.
 
