@@ -25,6 +25,11 @@ Scans a lon/lat box on Romania's 0.5 m LiDAR (ANCPI tiles are downloaded on dema
 ranked candidates (lon, lat, fused score, per-signal columns). Defaults reproduce the study;
 thresholds and filters are tunable via environment variables documented in `tools/tumul_scan.py`.
 
+> ⚠ ANCPI's geoportal is temporarily offline after a cyberattack. Until it returns, scanning works in
+> the 8×8 km demo area (southern Dolj), served from this repository's
+> [`demo-tiles` release](https://github.com/ObuObuHub/tumulus-lidar-detector/releases/tag/demo-tiles)
+> (data © ANCPI, redistributed unmodified, with attribution).
+
 ## Results
 
 | Benchmark | Result |
