@@ -14,7 +14,7 @@
 .tareabtn{display:block;padding:5px 12px;text-decoration:none;color:#111;text-align:center;font:12px sans-serif;}
 </style>
 <div id="tmap"></div>
-<div id="tinfo"><b>1.</b> Click în zona <b>albastră</b> &middot; <b>2.</b> apasă <b>&#9654; Scanează</b> / Click the <b>blue</b> area, then press <b>&#9654; Scan</b></div>
+<div id="tinfo"><b>1.</b> Click a point — start inside the <b>green demo area</b> &middot; <b>2.</b> press <b>&#9654; Scan</b></div>
 <div id="tout"></div>
 <script>
 (function(){
@@ -25,12 +25,16 @@
     var sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {attribution: 'Esri World Imagery', maxZoom: 19});
     var map = L.map('tmap', {layers: [osm]});
     var cov = L.geoJSON(covOut, {style: {color: '#1d4ed8', weight: 1.5, fillColor: '#3b82f6', fillOpacity: 0.16}}).addTo(map);
-    map.setView([44.8, 23.8], 7);
-    // Colab: iframe-ul de output isi schimba marimea DUPA initializare -> fitBounds imediat da zoom gresit
-    function refit(){ map.invalidateSize(); map.fitBounds(cov.getBounds(), {padding: [12, 12]}); }
+    // demo area (8x8 km, southern Dolj): tiles mirrored on GitHub -> works even while ANCPI is offline
+    var demoRect = L.rectangle([[44.00029, 23.46498], [44.07359, 23.56293]],
+                               {color: '#16a34a', weight: 2, fillColor: '#22c55e', fillOpacity: 0.10})
+                    .bindTooltip('Demo area — works now', {sticky: true}).addTo(map);
+    map.setView([44.04, 23.51], 12);
+    // Colab: the output iframe resizes AFTER init -> immediate fitBounds gives a wrong zoom
+    function refit(){ map.invalidateSize(); map.fitBounds(demoRect.getBounds(), {padding: [40, 40]}); }
     refit(); setTimeout(refit, 400); setTimeout(refit, 1500);
     if (window.ResizeObserver) { new ResizeObserver(function(){ map.invalidateSize(); }).observe(document.getElementById('tmap')); }
-    L.control.layers({'Hartă / Map': osm, 'Satelit / Satellite': sat}, {'LiDAR 0.5 m': cov}).addTo(map);
+    L.control.layers({'Map': osm, 'Satellite': sat}, {'LiDAR 0.5 m': cov, 'Demo area': demoRect}).addTo(map);
     L.control.scale({imperial: false}).addTo(map);
 
     var areaKm = 1;
@@ -38,7 +42,7 @@
     areaCtl.onAdd = function(){
       var d = L.DomUtil.create('div');
       d.style.cssText = 'background:#fff;border-radius:8px;box-shadow:0 1px 5px rgba(0,0,0,.3);overflow:hidden;margin-top:8px';
-      d.innerHTML = '<div style="padding:4px 10px;background:#f3f4f6;color:#374151;font:11px sans-serif;text-align:center">Arie / Area</div>';
+      d.innerHTML = '<div style="padding:4px 10px;background:#f3f4f6;color:#374151;font:11px sans-serif;text-align:center">Area</div>';
       [1, 2, 3].forEach(function(k){
         var b = document.createElement('a');
         b.textContent = k + ' km'; b.href = '#'; b.className = 'tareabtn';
@@ -60,7 +64,7 @@
     fullCtl.onAdd = function(){
       var d = L.DomUtil.create('div');
       d.style.cssText = 'background:#fff;border-radius:8px;box-shadow:0 1px 5px rgba(0,0,0,.3);margin-top:8px';
-      d.innerHTML = '<a href="#" style="display:block;padding:5px 10px;text-decoration:none;color:#111;font:12px sans-serif">Toată zona / Full view</a>';
+      d.innerHTML = '<a href="#" style="display:block;padding:5px 10px;text-decoration:none;color:#111;font:12px sans-serif">Full coverage</a>';
       d.firstChild.onclick = function(ev){ ev.preventDefault(); map.fitBounds(cov.getBounds(), {padding: [12, 12]}); };
       L.DomEvent.disableClickPropagation(d);
       return d;
@@ -74,7 +78,7 @@
       d.style.cssText = 'border-radius:8px;box-shadow:0 1px 5px rgba(0,0,0,.3);margin-top:8px;overflow:hidden';
       scanBtn = document.createElement('a');
       scanBtn.href = '#';
-      scanBtn.innerHTML = '&#9654; Scanează / Scan';
+      scanBtn.innerHTML = '&#9654; Scan';
       scanBtn.style.cssText = 'display:block;padding:9px 14px;text-decoration:none;font:bold 14px sans-serif;background:#e5e7eb;color:#9ca3af;cursor:not-allowed';
       scanBtn.onclick = function(ev){
         ev.preventDefault();
@@ -114,9 +118,9 @@
       box = L.rectangle([[lat - dLat, lon - dLon], [lat + dLat, lon + dLon]],
                         {color: '#f59e0b', weight: 1.5, dashArray: '4 4', fillOpacity: 0.05}).addTo(map);
       var mins = {1: '~1 min', 2: '~2-3 min', 3: '~4-6 min'}[km] || ('~' + km * 2 + ' min');
-      var q = inflight > 0 ? ' &middot; la coadă după scanarea în curs / queued' : '';
-      setStatus('<span class="tspin"></span>Se scanează ' + km + ' km la ' + lat.toFixed(4) + ', ' + lon.toFixed(4) +
-                ' (' + mins + ') / Scanning' + q, 'trun');
+      var q = inflight > 0 ? ' &middot; queued after the current scan' : '';
+      setStatus('<span class="tspin"></span>Scanning ' + km + ' km at ' + lat.toFixed(4) + ', ' + lon.toFixed(4) +
+                ' (' + mins + ')' + q, 'trun');
       inflight++;
       var d = null, err = null;
       try {
@@ -124,38 +128,38 @@
         d = res.data['application/json'];
       } catch(e){ err = e; }
       inflight--;
-      if(my !== seq) return;   // intre timp s-a cerut alta scanare: raspunsul asta vechi se arunca
+      if(my !== seq) return;   // a newer scan was requested meanwhile: drop this stale response
       if(err){
-        setStatus('Eroare / Error: ' + err + '<br>Sesiune expirată? Runtime &rarr; Run all. / Session expired? Runtime &rarr; Run all.', 'terr');
+        setStatus('Error: ' + err + '<br>Session expired? Runtime &rarr; Run all.', 'terr');
         return;
       }
       if(!d.ok){ setStatus(d.msg, 'terr'); return; }
       if(d.bbox && box){ box.setBounds([[d.bbox[0], d.bbox[1]], [d.bbox[2], d.bbox[3]]]); }
       var zona = lat.toFixed(4) + ', ' + lon.toFixed(4) + ' &middot; ' + km + ' km';
       var nm = (d.maybe || []).length;
-      var sufix = nm ? (' + ' + nm + ' <b style="color:#d97706">de verificat</b> / to verify') : '';
+      var sufix = nm ? (' + ' + nm + ' <b style="color:#d97706">to verify</b>') : '';
       if(d.n > 0){
-        setStatus('<b>' + d.n + ' movile probabile</b> (roșu)' + sufix + ' &middot; ' + zona + ' / ' + d.n + ' probable mound(s), red dots', 'tok');
+        setStatus('<b>' + d.n + ' probable mound(s)</b> (red)' + sufix + ' &middot; ' + zona, 'tok');
         d.rows.forEach(function(r){
           L.circleMarker([r.lat, r.lon], {radius: 7, color: '#b91c1c', weight: 2, fillColor: '#ef4444', fillOpacity: 0.75})
-           .bindPopup('<b>#' + r.id + '</b> scor / score ' + r.score + '<br>' + r.lat + ', ' + r.lon +
+           .bindPopup('<b>#' + r.id + '</b> score ' + r.score + '<br>' + r.lat + ', ' + r.lon +
                       '<br><a target="_blank" href="https://www.google.com/maps?q=' + r.lat + ',' + r.lon + '">Google Maps</a>')
            .addTo(mounds);
         });
       } else {
-        setStatus('Nicio movilă aici — modelul e selectiv' + sufix + ' &middot; ' + zona + ' / No mounds here; the model is selective', 'tok');
+        setStatus('No mounds here — the model is selective' + sufix + ' &middot; ' + zona, 'tok');
       }
       (d.maybe || []).forEach(function(r){
         L.circleMarker([r.lat, r.lon], {radius: 6, color: '#d97706', weight: 2, fillColor: '#f59e0b', fillOpacity: 0.25, dashArray: '3 3'})
-         .bindPopup('<b>De verificat / To verify</b> (scor ' + r.score + ' — sub prag sau tăiat de filtre / below threshold or filtered)<br>' +
+         .bindPopup('<b>To verify</b> (score ' + r.score + ' — below threshold or cut by filters)<br>' +
                     r.lat + ', ' + r.lon + '<br><a target="_blank" href="https://www.google.com/maps?q=' + r.lat + ',' + r.lon + '">Google Maps</a>')
          .addTo(maybes);
       });
       map.fitBounds(box.getBounds(), {padding: [30, 30], maxZoom: 15});
-      var html = '<div style="font:13px sans-serif;color:#374151;margin:2px 0 6px">Zona scanată / Scanned zone: <b>' + zona + '</b></div>';
+      var html = '<div style="font:13px sans-serif;color:#374151;margin:2px 0 6px">Scanned zone: <b>' + zona + '</b></div>';
       html += '<img style="max-width:100%;border-radius:8px;box-shadow:0 1px 6px rgba(0,0,0,.2)" src="data:image/jpeg;base64,' + d.img + '"/>';
       if(d.rows.length){
-        html += '<table><tr><th>#</th><th>lon</th><th>lat</th><th>scor / score</th><th>cnn</th><th>amprentă / fingerprint</th><th></th></tr>';
+        html += '<table><tr><th>#</th><th>lon</th><th>lat</th><th>score</th><th>cnn</th><th>fingerprint</th><th></th></tr>';
         d.rows.forEach(function(r){
           html += '<tr><td>' + r.id + '</td><td>' + r.lon + '</td><td>' + r.lat + '</td><td><b>' + r.score + '</b></td><td>' +
                   r.cnn + '</td><td>' + r.mahal + '</td><td><a target="_blank" href="https://www.google.com/maps?q=' +
@@ -175,9 +179,17 @@
       selBox = L.rectangle([[sel.lat - dLat, sel.lng - dLon], [sel.lat + dLat, sel.lng + dLon]],
                            {color: '#16a34a', weight: 1.5, dashArray: '4 4', fillOpacity: 0.04}).addTo(map);
       armBtn(true);
-      setStatus('Punct ales / Picked: <b>' + sel.lat.toFixed(4) + ', ' + sel.lng.toFixed(4) +
-                '</b> &middot; ' + areaKm + ' km &rarr; apasă <b>&#9654; Scanează / Scan</b>', '');
+      setStatus('Picked: <b>' + sel.lat.toFixed(4) + ', ' + sel.lng.toFixed(4) +
+                '</b> &middot; ' + areaKm + ' km &rarr; press <b>&#9654; Scan</b>', '');
     });
+    // preselect the demo point: "Run all" -> just press Scan
+    sel = L.latLng(44.0430, 23.5220);
+    selMark = L.marker([sel.lat, sel.lng]).addTo(map);
+    var dh = areaKm * 500, dLa = dh / 111320, dLo = dh / (111320 * Math.cos(sel.lat * Math.PI / 180));
+    selBox = L.rectangle([[sel.lat - dLa, sel.lng - dLo], [sel.lat + dLa, sel.lng + dLo]],
+                         {color: '#16a34a', weight: 1.5, dashArray: '4 4', fillOpacity: 0.04}).addTo(map);
+    armBtn(true);
+    setStatus('Demo point ready: <b>44.0430, 23.5220</b> &middot; press <b>&#9654; Scan</b> — or click another point first', '');
   }
   start();
 })();

@@ -20,17 +20,21 @@ os.environ["LAKI3_CACHE"]=CACHE
 import pyproj
 _t4326=pyproj.Transformer.from_crs("EPSG:4326","EPSG:3844",always_xy=True)
 _t3844=pyproj.Transformer.from_crs("EPSG:3844","EPSG:4326",always_xy=True)
+# dale: ANCPI intai (acoperire completa); daca pica (geoportal offline dupa atacul din iulie 2026),
+# mirror-ul GitHub Releases cu dalele zonei demo (8x8 km, date (c) ANCPI, redistribuite nemodificat).
+MIRROR=os.environ.get("TILE_MIRROR","https://github.com/ObuObuHub/tumulus-lidar-detector/releases/download/demo-tiles")
 def load_one(nk,ek):
     p=f"{CACHE}/{nk}_{ek}.npy"
     if os.path.exists(p):
         try:return np.load(p)
         except:pass
-    z=f"{CACHE}/{nk}_{ek}.zip"
-    if not os.path.exists(z):subprocess.run(["curl","-s","--max-time","120","-o",z,f"https://geoportal.ancpi.ro/laki3_mnt/zip/{nk}_{ek}.zip"],check=False)
-    try:import zipfile;zf=zipfile.ZipFile(z)
-    except:
-        if os.path.exists(z):os.remove(z)
-        return None
+    z=f"{CACHE}/{nk}_{ek}.zip";zf=None;import zipfile
+    for base in ("https://geoportal.ancpi.ro/laki3_mnt/zip",MIRROR):
+        if not os.path.exists(z):subprocess.run(["curl","-sL","--connect-timeout","8","--max-time","120","-o",z,f"{base}/{nk}_{ek}.zip"],check=False)
+        try:zf=zipfile.ZipFile(z);break
+        except:
+            if os.path.exists(z):os.remove(z)
+    if zf is None:return None
     asc=[n for n in zf.namelist() if n.lower().endswith('.asc')]
     if not asc:return None
     raw=zf.read(asc[0]).decode('latin-1').replace(',','.');lines=raw.split('\n');hdr={};i=0
@@ -47,7 +51,7 @@ nt=0
 for nk in range(n0-1,n1+2):
     for ek in range(e0-1,e1+2):
         if load_one(nk,ek) is not None and n0<=nk<=n1 and e0<=ek<=e1:nt+=1
-if nt==0:print("ERROR: no LAKI3 tiles - area not covered (LAKI III / 0.5 m is Oltenia+SV only), OR the download failed (network / geoportal.ancpi.ro)");sys.exit(2)
+if nt==0:print("ERROR: no LiDAR tiles here - outside the 0.5 m coverage, or ANCPI is offline and this area is not in the demo mirror. The green demo area on the map always works.");sys.exit(2)
 print(f"{nt} tiles in zone ({KM}km); running v4 scanner (fingerprint detect -> fused decision)...",flush=True)
 # scanerul integrat
 ts=importlib.util.spec_from_file_location("ts",f"{H}/tools/tumul_scan.py");TS=importlib.util.module_from_spec(ts);ts.loader.exec_module(TS)
