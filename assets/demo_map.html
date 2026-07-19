@@ -1,0 +1,184 @@
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
+<style>
+#tmap{height:480px;border:1px solid #d1d5db;border-radius:10px;}
+#tinfo{font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;margin:10px 0;padding:8px 12px;border-radius:8px;background:#f3f4f6;color:#111;}
+#tinfo.trun{background:#eff6ff;color:#1e3a8a;}
+#tinfo.tok{background:#ecfdf5;color:#065f46;}
+#tinfo.terr{background:#fef2f2;color:#991b1b;}
+.tspin{display:inline-block;width:13px;height:13px;border:2px solid #93c5fd;border-top-color:#1d4ed8;border-radius:50%;vertical-align:-2px;margin-right:6px;animation:tsp 0.9s linear infinite;}
+@keyframes tsp{to{transform:rotate(360deg)}}
+#tout table{border-collapse:collapse;font:13px -apple-system,Segoe UI,Roboto,sans-serif;margin-top:10px;}
+#tout th{border-bottom:2px solid #9ca3af;padding:5px 12px;text-align:left;color:#374151;}
+#tout td{border-bottom:1px solid #e5e7eb;padding:5px 12px;}
+.tareabtn{display:block;padding:5px 12px;text-decoration:none;color:#111;text-align:center;font:12px sans-serif;}
+</style>
+<div id="tmap"></div>
+<div id="tinfo"><b>1.</b> Click în zona <b>albastră</b> &middot; <b>2.</b> apasă <b>&#9654; Scanează</b> / Click the <b>blue</b> area, then press <b>&#9654; Scan</b></div>
+<div id="tout"></div>
+<script>
+(function(){
+  var covOut = __COVOUT__;
+  function start(){
+    if(typeof L === 'undefined'){ setTimeout(start, 200); return; }
+    var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: '&copy; OpenStreetMap', maxZoom: 19});
+    var sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {attribution: 'Esri World Imagery', maxZoom: 19});
+    var map = L.map('tmap', {layers: [osm]});
+    var cov = L.geoJSON(covOut, {style: {color: '#1d4ed8', weight: 1.5, fillColor: '#3b82f6', fillOpacity: 0.16}}).addTo(map);
+    map.setView([44.8, 23.8], 7);
+    // Colab: iframe-ul de output isi schimba marimea DUPA initializare -> fitBounds imediat da zoom gresit
+    function refit(){ map.invalidateSize(); map.fitBounds(cov.getBounds(), {padding: [12, 12]}); }
+    refit(); setTimeout(refit, 400); setTimeout(refit, 1500);
+    if (window.ResizeObserver) { new ResizeObserver(function(){ map.invalidateSize(); }).observe(document.getElementById('tmap')); }
+    L.control.layers({'Hartă / Map': osm, 'Satelit / Satellite': sat}, {'LiDAR 0.5 m': cov}).addTo(map);
+    L.control.scale({imperial: false}).addTo(map);
+
+    var areaKm = 1;
+    var areaCtl = L.control({position: 'topleft'});
+    areaCtl.onAdd = function(){
+      var d = L.DomUtil.create('div');
+      d.style.cssText = 'background:#fff;border-radius:8px;box-shadow:0 1px 5px rgba(0,0,0,.3);overflow:hidden;margin-top:8px';
+      d.innerHTML = '<div style="padding:4px 10px;background:#f3f4f6;color:#374151;font:11px sans-serif;text-align:center">Arie / Area</div>';
+      [1, 2, 3].forEach(function(k){
+        var b = document.createElement('a');
+        b.textContent = k + ' km'; b.href = '#'; b.className = 'tareabtn';
+        if(k === areaKm) b.style.background = '#dbeafe';
+        b.onclick = function(ev){
+          ev.preventDefault();
+          areaKm = k;
+          Array.prototype.forEach.call(d.querySelectorAll('a'), function(x){ x.style.background = ''; });
+          b.style.background = '#dbeafe';
+        };
+        d.appendChild(b);
+      });
+      L.DomEvent.disableClickPropagation(d);
+      return d;
+    };
+    areaCtl.addTo(map);
+
+    var fullCtl = L.control({position: 'topleft'});
+    fullCtl.onAdd = function(){
+      var d = L.DomUtil.create('div');
+      d.style.cssText = 'background:#fff;border-radius:8px;box-shadow:0 1px 5px rgba(0,0,0,.3);margin-top:8px';
+      d.innerHTML = '<a href="#" style="display:block;padding:5px 10px;text-decoration:none;color:#111;font:12px sans-serif">Toată zona / Full view</a>';
+      d.firstChild.onclick = function(ev){ ev.preventDefault(); map.fitBounds(cov.getBounds(), {padding: [12, 12]}); };
+      L.DomEvent.disableClickPropagation(d);
+      return d;
+    };
+    fullCtl.addTo(map);
+
+    var sel = null, selMark = null, selBox = null, scanBtn = null;
+    var goCtl = L.control({position: 'topleft'});
+    goCtl.onAdd = function(){
+      var d = L.DomUtil.create('div');
+      d.style.cssText = 'border-radius:8px;box-shadow:0 1px 5px rgba(0,0,0,.3);margin-top:8px;overflow:hidden';
+      scanBtn = document.createElement('a');
+      scanBtn.href = '#';
+      scanBtn.innerHTML = '&#9654; Scanează / Scan';
+      scanBtn.style.cssText = 'display:block;padding:9px 14px;text-decoration:none;font:bold 14px sans-serif;background:#e5e7eb;color:#9ca3af;cursor:not-allowed';
+      scanBtn.onclick = function(ev){
+        ev.preventDefault();
+        if(!sel) return;
+        scan(sel.lat, sel.lng);
+      };
+      d.appendChild(scanBtn);
+      L.DomEvent.disableClickPropagation(d);
+      return d;
+    };
+    goCtl.addTo(map);
+    function armBtn(on){
+      if(!scanBtn) return;
+      scanBtn.style.background = on ? '#16a34a' : '#e5e7eb';
+      scanBtn.style.color = on ? '#fff' : '#9ca3af';
+      scanBtn.style.cursor = on ? 'pointer' : 'not-allowed';
+    }
+
+    var marker = null, box = null, seq = 0, inflight = 0;
+    var mounds = L.layerGroup().addTo(map);
+    var maybes = L.layerGroup().addTo(map);
+    var info = document.getElementById('tinfo'), out = document.getElementById('tout');
+    function setStatus(html, cls){ info.className = cls || ''; info.innerHTML = html; }
+    cov.on('mouseover', function(){ map.getContainer().style.cursor = 'crosshair'; });
+    cov.on('mouseout', function(){ map.getContainer().style.cursor = ''; });
+
+    async function scan(lat, lon){
+      var my = ++seq, km = areaKm;
+      if(selMark){ map.removeLayer(selMark); selMark = null; }
+      if(selBox){ map.removeLayer(selBox); selBox = null; }
+      if(marker) map.removeLayer(marker);
+      if(box) map.removeLayer(box);
+      mounds.clearLayers(); maybes.clearLayers(); out.innerHTML = '';
+      marker = L.marker([lat, lon]).addTo(map);
+      var half = km * 500;
+      var dLat = half / 111320, dLon = half / (111320 * Math.cos(lat * Math.PI / 180));
+      box = L.rectangle([[lat - dLat, lon - dLon], [lat + dLat, lon + dLon]],
+                        {color: '#f59e0b', weight: 1.5, dashArray: '4 4', fillOpacity: 0.05}).addTo(map);
+      var mins = {1: '~1 min', 2: '~2-3 min', 3: '~4-6 min'}[km] || ('~' + km * 2 + ' min');
+      var q = inflight > 0 ? ' &middot; la coadă după scanarea în curs / queued' : '';
+      setStatus('<span class="tspin"></span>Se scanează ' + km + ' km la ' + lat.toFixed(4) + ', ' + lon.toFixed(4) +
+                ' (' + mins + ') / Scanning' + q, 'trun');
+      inflight++;
+      var d = null, err = null;
+      try {
+        var res = await google.colab.kernel.invokeFunction('notebook.scan', [lat, lon, km], {});
+        d = res.data['application/json'];
+      } catch(e){ err = e; }
+      inflight--;
+      if(my !== seq) return;   // intre timp s-a cerut alta scanare: raspunsul asta vechi se arunca
+      if(err){
+        setStatus('Eroare / Error: ' + err + '<br>Sesiune expirată? Runtime &rarr; Run all. / Session expired? Runtime &rarr; Run all.', 'terr');
+        return;
+      }
+      if(!d.ok){ setStatus(d.msg, 'terr'); return; }
+      if(d.bbox && box){ box.setBounds([[d.bbox[0], d.bbox[1]], [d.bbox[2], d.bbox[3]]]); }
+      var zona = lat.toFixed(4) + ', ' + lon.toFixed(4) + ' &middot; ' + km + ' km';
+      var nm = (d.maybe || []).length;
+      var sufix = nm ? (' + ' + nm + ' <b style="color:#d97706">de verificat</b> / to verify') : '';
+      if(d.n > 0){
+        setStatus('<b>' + d.n + ' movile probabile</b> (roșu)' + sufix + ' &middot; ' + zona + ' / ' + d.n + ' probable mound(s), red dots', 'tok');
+        d.rows.forEach(function(r){
+          L.circleMarker([r.lat, r.lon], {radius: 7, color: '#b91c1c', weight: 2, fillColor: '#ef4444', fillOpacity: 0.75})
+           .bindPopup('<b>#' + r.id + '</b> scor / score ' + r.score + '<br>' + r.lat + ', ' + r.lon +
+                      '<br><a target="_blank" href="https://www.google.com/maps?q=' + r.lat + ',' + r.lon + '">Google Maps</a>')
+           .addTo(mounds);
+        });
+      } else {
+        setStatus('Nicio movilă aici — modelul e selectiv' + sufix + ' &middot; ' + zona + ' / No mounds here; the model is selective', 'tok');
+      }
+      (d.maybe || []).forEach(function(r){
+        L.circleMarker([r.lat, r.lon], {radius: 6, color: '#d97706', weight: 2, fillColor: '#f59e0b', fillOpacity: 0.25, dashArray: '3 3'})
+         .bindPopup('<b>De verificat / To verify</b> (scor ' + r.score + ' — sub prag sau tăiat de filtre / below threshold or filtered)<br>' +
+                    r.lat + ', ' + r.lon + '<br><a target="_blank" href="https://www.google.com/maps?q=' + r.lat + ',' + r.lon + '">Google Maps</a>')
+         .addTo(maybes);
+      });
+      map.fitBounds(box.getBounds(), {padding: [30, 30], maxZoom: 15});
+      var html = '<div style="font:13px sans-serif;color:#374151;margin:2px 0 6px">Zona scanată / Scanned zone: <b>' + zona + '</b></div>';
+      html += '<img style="max-width:100%;border-radius:8px;box-shadow:0 1px 6px rgba(0,0,0,.2)" src="data:image/jpeg;base64,' + d.img + '"/>';
+      if(d.rows.length){
+        html += '<table><tr><th>#</th><th>lon</th><th>lat</th><th>scor / score</th><th>cnn</th><th>amprentă / fingerprint</th><th></th></tr>';
+        d.rows.forEach(function(r){
+          html += '<tr><td>' + r.id + '</td><td>' + r.lon + '</td><td>' + r.lat + '</td><td><b>' + r.score + '</b></td><td>' +
+                  r.cnn + '</td><td>' + r.mahal + '</td><td><a target="_blank" href="https://www.google.com/maps?q=' +
+                  r.lat + ',' + r.lon + '">Google Maps</a></td></tr>';
+        });
+        html += '</table>';
+      }
+      out.innerHTML = html;
+    }
+    map.on('click', function(e){
+      sel = e.latlng;
+      if(selMark) map.removeLayer(selMark);
+      if(selBox) map.removeLayer(selBox);
+      selMark = L.marker([sel.lat, sel.lng]).addTo(map);
+      var half = areaKm * 500;
+      var dLat = half / 111320, dLon = half / (111320 * Math.cos(sel.lat * Math.PI / 180));
+      selBox = L.rectangle([[sel.lat - dLat, sel.lng - dLon], [sel.lat + dLat, sel.lng + dLon]],
+                           {color: '#16a34a', weight: 1.5, dashArray: '4 4', fillOpacity: 0.04}).addTo(map);
+      armBtn(true);
+      setStatus('Punct ales / Picked: <b>' + sel.lat.toFixed(4) + ', ' + sel.lng.toFixed(4) +
+                '</b> &middot; ' + areaKm + ' km &rarr; apasă <b>&#9654; Scanează / Scan</b>', '');
+    });
+  }
+  start();
+})();
+</script>
