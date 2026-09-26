@@ -54,14 +54,12 @@ with open(f'{H}/detected_mounds.csv','w',newline='') as fo:
     for r in kept:w.writerow([f"{r['lon']:.6f}",f"{r['lat']:.6f}",f"{r['fuse']:.3f}",f"https://maps.google.com/?q={r['lat']:.6f},{r['lon']:.6f}"])
 # ── zone_view.jpg: hillshade-ul zonei + marcaje
 def hshade(dem,cs=0.5):
-    gy,gx=np.gradient(dem.astype(np.float64),cs)
-    slope=np.arctan(np.hypot(gx,gy));aspect=np.arctan2(-gx,gy);alt=math.radians(45)
-    o=np.zeros(dem.shape)
-    for az in range(0,360,60):
-        azr=math.radians(az)
-        o+=np.clip(math.sin(alt)*np.cos(slope)+math.cos(alt)*np.sin(slope)*np.cos(azr-aspect),0,1)
-    v=o.flatten();idx=np.argsort(v);r=np.empty(len(v));r[idx]=np.arange(len(v))/(len(v)-1)
-    return (r.reshape(o.shape)*255).astype(np.uint8)
+    """Umbrire clasică (o lumină din NV, 45°), contrast mediu — stilul ales de Andrei pe planșe (26.09)."""
+    gy,gx=np.gradient(dem.astype(np.float64),cs);slope=np.arctan(np.hypot(gx,gy));aspect=np.arctan2(-gy,gx)
+    alt=math.radians(45);azr=math.radians(360-315+90)
+    h=np.clip(math.sin(alt)*np.cos(slope)+math.cos(alt)*np.sin(slope)*np.cos(azr-aspect),0,1)
+    lo,hi=np.percentile(h,1),np.percentile(h,99);u=np.clip((h-lo)/(hi-lo+1e-9),0,1)**1.4
+    return (20+u*225).astype(np.uint8)
 med=float(np.nanmedian(mos));fill=np.where(np.isfinite(mos),mos,med)
 # vederea = DOAR zona ceruta (mozaicul are margine de context in plus), la 2 m/px
 zy0=max(0,int((ytop-(nord+half))/CS));zy1=int((ytop-(nord-half))/CS)

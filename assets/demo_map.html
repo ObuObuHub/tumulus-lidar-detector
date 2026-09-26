@@ -14,7 +14,7 @@
 .tareabtn{display:block;padding:5px 12px;text-decoration:none;color:#111;text-align:center;font:12px sans-serif;}
 </style>
 <div id="tmap"></div>
-<div id="tinfo"><b>1.</b> Click a point — start inside the <b>green area (Dolj)</b> &middot; <b>2.</b> press <b>&#9654; Scan</b></div>
+<div id="tinfo"><b>1.</b> Pick a place: search a village (top right) or click inside the <b>green area</b> &middot; <b>2.</b> press <b>&#9654; Scan</b></div>
 <div id="tout"></div>
 <script>
 (function(){
@@ -29,13 +29,49 @@
     // Dolj: tiles mirrored on GitHub (the project's tile mirror) -> works even while ANCPI is offline
     var demoRect = L.geoJSON(mirOut, {style: {color: '#16a34a', weight: 2, fillColor: '#22c55e', fillOpacity: 0.10}})
                     .bindTooltip('Dolj — works now', {sticky: true}).addTo(map);
-    map.setView([44.04, 23.51], 12);
+    var START = L.latLng(44.0430, 23.5220);
+    map.setView(START, 13);
     // Colab: the output iframe resizes AFTER init -> immediate fitBounds gives a wrong zoom
-    function refit(){ map.invalidateSize(); map.fitBounds(demoRect.getBounds(), {padding: [40, 40]}); }
+    function refit(){ map.invalidateSize(); map.fitBounds(START.toBounds(9000)); }
     refit(); setTimeout(refit, 400); setTimeout(refit, 1500);
     if (window.ResizeObserver) { new ResizeObserver(function(){ map.invalidateSize(); }).observe(document.getElementById('tmap')); }
     L.control.layers({'Map': osm, 'Satellite': sat}, {'LiDAR 0.5 m': cov, 'Works now (Dolj)': demoRect}).addTo(map);
     L.control.scale({imperial: false}).addTo(map);
+    // legenda (colțul din dreapta jos)
+    var leg = L.control({position: 'bottomright'});
+    leg.onAdd = function(){
+      var d = L.DomUtil.create('div');
+      d.style.cssText = 'background:#fff;padding:6px 10px;border-radius:8px;box-shadow:0 1px 5px rgba(0,0,0,.3);font:12px/1.6 sans-serif;color:#111';
+      function sw(c, dash){ return '<span style="display:inline-block;width:12px;height:12px;border:2px ' + (dash ? 'dashed' : 'solid') + ' ' + c + ';border-radius:' + (dash ? '50%' : '3px') + ';margin-right:6px;vertical-align:-2px"></span>'; }
+      d.innerHTML = sw('#16a34a') + 'scan works here now (Dolj)<br>' + sw('#1d4ed8') + 'LiDAR, when ANCPI is back<br>' +
+                    sw('#b91c1c') + 'probable mound<br>' + sw('#d97706', true) + 'worth a second look';
+      return d;
+    };
+    leg.addTo(map);
+    // căutare după numele locului (OpenStreetMap), doar în România
+    var find = L.control({position: 'topright'});
+    find.onAdd = function(){
+      var d = L.DomUtil.create('div');
+      d.style.cssText = 'background:#fff;padding:5px;border-radius:8px;box-shadow:0 1px 5px rgba(0,0,0,.3)';
+      d.innerHTML = '<input id="tq" placeholder="Village or town…" style="width:170px;padding:5px;border:1px solid #d1d5db;border-radius:6px;font:13px sans-serif">' +
+                    '<button id="tgo" style="margin-left:4px;padding:5px 9px;border:0;border-radius:6px;background:#1d4ed8;color:#fff;font:13px sans-serif;cursor:pointer">Go</button>';
+      L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d);
+      return d;
+    };
+    find.addTo(map);
+    async function goPlace(){
+      var q = document.getElementById('tq').value.trim(); if(!q) return;
+      setStatus('<span class="tspin"></span>Searching “' + q + '”…', 'trun');
+      try {
+        var r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ro&q=' + encodeURIComponent(q));
+        var j = await r.json();
+        if(!j.length){ setStatus('Place not found: “' + q + '”. Try another spelling, or click on the map.', 'terr'); return; }
+        pick(L.latLng(parseFloat(j[0].lat), parseFloat(j[0].lon)), j[0].display_name.split(',').slice(0, 2).join(','));
+        map.setView(sel, 14);
+      } catch(e){ setStatus('Search is unavailable right now — click on the map instead.', 'terr'); }
+    }
+    document.getElementById('tgo').onclick = goPlace;
+    document.getElementById('tq').addEventListener('keydown', function(ev){ if(ev.key === 'Enter') goPlace(); });
 
     var areaKm = 1;
     var areaCtl = L.control({position: 'topleft'});
@@ -52,6 +88,7 @@
           areaKm = k;
           Array.prototype.forEach.call(d.querySelectorAll('a'), function(x){ x.style.background = ''; });
           b.style.background = '#dbeafe';
+          if(sel) pick(sel);   // redesenează pătratul la noua mărime
         };
         d.appendChild(b);
       });
@@ -64,8 +101,8 @@
     fullCtl.onAdd = function(){
       var d = L.DomUtil.create('div');
       d.style.cssText = 'background:#fff;border-radius:8px;box-shadow:0 1px 5px rgba(0,0,0,.3);margin-top:8px';
-      d.innerHTML = '<a href="#" style="display:block;padding:5px 10px;text-decoration:none;color:#111;font:12px sans-serif">Full coverage</a>';
-      d.firstChild.onclick = function(ev){ ev.preventDefault(); map.fitBounds(cov.getBounds(), {padding: [12, 12]}); };
+      d.innerHTML = '<a href="#" style="display:block;padding:5px 10px;text-decoration:none;color:#111;font:12px sans-serif">Zoom out</a>';
+      d.firstChild.onclick = function(ev){ ev.preventDefault(); map.fitBounds(demoRect.getBounds(), {padding: [12, 12]}); };
       L.DomEvent.disableClickPropagation(d);
       return d;
     };
@@ -141,38 +178,40 @@
       var part = (d.cover && d.cover.data_pct < 99) ? d.cover.data_pct : null;   // share of the zone that has LiDAR data
       var warn = (part !== null) ? (' &middot; <b style="color:#b91c1c">&#9888; LiDAR data for only ' + Math.round(part) + '% of the zone &mdash; the rest (dark red) was NOT scanned</b>') : '';
       if(d.n > 0){
-        setStatus('<b>' + d.n + ' probable mound(s)</b> (red)' + sufix + ' &middot; ' + zona + warn, 'tok');
+        setStatus('<b>' + d.n + ' probable mound' + (d.n > 1 ? 's' : '') + '</b> in this square (red)' + sufix + ' &middot; ' + zona + warn, 'tok');
         d.rows.forEach(function(r){
           L.circleMarker([r.lat, r.lon], {radius: 7, color: '#b91c1c', weight: 2, fillColor: '#ef4444', fillOpacity: 0.75})
            .bindPopup('<b>#' + r.id + '</b> score ' + r.score + '<br>' + r.lat + ', ' + r.lon +
-                      '<br><a target="_blank" href="https://www.google.com/maps?q=' + r.lat + ',' + r.lon + '">Google Maps</a>')
+                      '<br><a target="_blank" href="https://www.google.com/maps?q=' + r.lat + ',' + r.lon + '&t=k">see it on satellite</a>')
            .addTo(mounds);
         });
       } else {
-        setStatus((part !== null ? 'No mounds in the scanned part' : 'No mounds here — the model is selective') + sufix + ' &middot; ' + zona + warn, 'tok');
+        setStatus((part !== null ? 'No mounds in the scanned part' : 'No mounds found in this square') + sufix + ' &middot; ' + zona + warn, 'tok');
       }
       (d.maybe || []).forEach(function(r){
         L.circleMarker([r.lat, r.lon], {radius: 6, color: '#d97706', weight: 2, fillColor: '#f59e0b', fillOpacity: 0.25, dashArray: '3 3'})
          .bindPopup('<b>To verify</b> (score ' + r.score + ' — below threshold or cut by filters)<br>' +
-                    r.lat + ', ' + r.lon + '<br><a target="_blank" href="https://www.google.com/maps?q=' + r.lat + ',' + r.lon + '">Google Maps</a>')
+                    r.lat + ', ' + r.lon + '<br><a target="_blank" href="https://www.google.com/maps?q=' + r.lat + ',' + r.lon + '&t=k">see it on satellite</a>')
          .addTo(maybes);
       });
       map.fitBounds(box.getBounds(), {padding: [30, 30], maxZoom: 15});
       var html = '<div style="font:13px sans-serif;color:#374151;margin:2px 0 6px">Scanned zone: <b>' + zona + '</b></div>';
       html += '<img style="max-width:100%;border-radius:8px;box-shadow:0 1px 6px rgba(0,0,0,.2)" src="data:image/jpeg;base64,' + d.img + '"/>';
+      html += '<div style="font:12px sans-serif;color:#4b5563;margin:4px 0 8px">Relief of the square. Green circles = probable mounds (numbers as in the list) · orange = worth a second look · dark red = no LiDAR data.</div>';
       if(d.rows.length){
-        html += '<table><tr><th>#</th><th>lon</th><th>lat</th><th>score</th><th>cnn</th><th>fingerprint</th><th></th></tr>';
+        html += '<table><tr><th>#</th><th>score (0–1)</th><th>location</th></tr>';
         d.rows.forEach(function(r){
-          html += '<tr><td>' + r.id + '</td><td>' + r.lon + '</td><td>' + r.lat + '</td><td><b>' + r.score + '</b></td><td>' +
-                  r.cnn + '</td><td>' + r.mahal + '</td><td><a target="_blank" href="https://www.google.com/maps?q=' +
-                  r.lat + ',' + r.lon + '">Google Maps</a></td></tr>';
+          html += '<tr><td>' + r.id + '</td><td><b>' + r.score + '</b></td><td><a target="_blank" href="https://www.google.com/maps?q=' +
+                  r.lat + ',' + r.lon + '&t=k">' + r.lat + ', ' + r.lon + ' — see it on satellite</a></td></tr>';
         });
         html += '</table>';
+        if(d.csv){ html += '<div style="margin-top:8px"><a download="mounds.csv" href="data:text/csv;base64,' + d.csv + '" style="font:13px sans-serif">⬇ Download the list (CSV)</a></div>'; }
       }
+      html += '<div style="font:12px sans-serif;color:#6b7280;margin-top:10px">Shape is not proof: only a field visit confirms a mound. Please do not dig; report finds to the county heritage office.</div>';
       out.innerHTML = html;
     }
-    map.on('click', function(e){
-      sel = e.latlng;
+    function pick(ll, name){
+      sel = ll;
       if(selMark) map.removeLayer(selMark);
       if(selBox) map.removeLayer(selBox);
       selMark = L.marker([sel.lat, sel.lng]).addTo(map);
@@ -181,17 +220,13 @@
       selBox = L.rectangle([[sel.lat - dLat, sel.lng - dLon], [sel.lat + dLat, sel.lng + dLon]],
                            {color: '#16a34a', weight: 1.5, dashArray: '4 4', fillOpacity: 0.04}).addTo(map);
       armBtn(true);
-      setStatus('Picked: <b>' + sel.lat.toFixed(4) + ', ' + sel.lng.toFixed(4) +
-                '</b> &middot; ' + areaKm + ' km &rarr; press <b>&#9654; Scan</b>', '');
-    });
-    // preselect the demo point: "Run all" -> just press Scan
-    sel = L.latLng(44.0430, 23.5220);
-    selMark = L.marker([sel.lat, sel.lng]).addTo(map);
-    var dh = areaKm * 500, dLa = dh / 111320, dLo = dh / (111320 * Math.cos(sel.lat * Math.PI / 180));
-    selBox = L.rectangle([[sel.lat - dLa, sel.lng - dLo], [sel.lat + dLa, sel.lng + dLo]],
-                         {color: '#16a34a', weight: 1.5, dashArray: '4 4', fillOpacity: 0.04}).addTo(map);
-    armBtn(true);
-    setStatus('Demo point ready: <b>44.0430, 23.5220</b> &middot; press <b>&#9654; Scan</b> — or click another point first', '');
+      setStatus('Picked: <b>' + (name ? name + ' · ' : '') + sel.lat.toFixed(4) + ', ' + sel.lng.toFixed(4) +
+                '</b> · ' + areaKm + ' km square → press <b>&#9654; Scan</b>', '');
+    }
+    map.on('click', function(e){ pick(e.latlng); });
+    // punctul demo e deja ales: după „Run all” ajunge un click pe Scan
+    pick(START);
+    setStatus('A demo point is already picked · press <b>&#9654; Scan</b> — or search a village / click the map first', '');
   }
   start();
 })();
