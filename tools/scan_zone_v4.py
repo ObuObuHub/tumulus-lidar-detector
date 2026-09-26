@@ -16,45 +16,21 @@ CLON=float(sys.argv[1]);CLAT=float(sys.argv[2]);KM=float(sys.argv[3]) if len(sys
 CACHE=os.environ.get("LAKI3_CACHE","/tmp/laki3");CS=0.5;TPX=2000
 os.makedirs(CACHE,exist_ok=True);os.makedirs(f'{H}/review',exist_ok=True)
 os.environ["LAKI3_CACHE"]=CACHE
-[os.remove(_p) for _p in ('/tmp/zone_dets.csv',f'{H}/review/zone_view.jpg',f'{H}/review/zone_board.jpg',f'{H}/detected_mounds.csv') if os.path.exists(_p)]
+[os.remove(_p) for _p in ('/tmp/zone_dets.csv','/tmp/zone_cover.json',f'{H}/review/zone_view.jpg',f'{H}/review/zone_board.jpg',f'{H}/detected_mounds.csv') if os.path.exists(_p)]
 import pyproj
 _t4326=pyproj.Transformer.from_crs("EPSG:4326","EPSG:3844",always_xy=True)
 _t3844=pyproj.Transformer.from_crs("EPSG:3844","EPSG:4326",always_xy=True)
-# dale: ANCPI intai (acoperire completa); daca pica (geoportal offline dupa atacul din iulie 2026),
-# mirror-ul GitHub Releases cu dalele zonei demo (8x8 km, date (c) ANCPI, redistribuite nemodificat).
-MIRROR=os.environ.get("TILE_MIRROR","https://github.com/ObuObuHub/tumulus-lidar-detector/releases/download/demo-tiles")
-def load_one(nk,ek):
-    p=f"{CACHE}/{nk}_{ek}.npy"
-    if os.path.exists(p):
-        try:return np.load(p)
-        except:pass
-    z=f"{CACHE}/{nk}_{ek}.zip";zf=None;import zipfile
-    for base in ("https://geoportal.ancpi.ro/laki3_mnt/zip",MIRROR):
-        if not os.path.exists(z):subprocess.run(["curl","-sL","--connect-timeout","8","--max-time","120","-o",z,f"{base}/{nk}_{ek}.zip"],check=False)
-        try:zf=zipfile.ZipFile(z);break
-        except:
-            if os.path.exists(z):os.remove(z)
-    if zf is None:return None
-    asc=[n for n in zf.namelist() if n.lower().endswith('.asc')]
-    if not asc:return None
-    raw=zf.read(asc[0]).decode('latin-1').replace(',','.');lines=raw.split('\n');hdr={};i=0
-    while i<len(lines):
-        pp=lines[i].split()
-        if len(pp)>=2 and pp[0].lower() in ('ncols','nrows','xllcorner','yllcorner','cellsize','nodata_value'):hdr[pp[0].lower()]=float(pp[1]);i+=1
-        else:break
-    nc=int(hdr['ncols']);nr=int(hdr['nrows']);nd=hdr.get('nodata_value',-9999)
-    d=np.fromstring(' '.join(lines[i:]),sep=' ',dtype=np.float32)[:nc*nr].reshape(nr,nc);d[d==nd]=np.nan;np.save(p,d);return d
+# scanerul integrat + loaderul lui de dale (cache .npy/.zip; altfel ANCPI, apoi oglinda GitHub a zonei demo)
+ts=importlib.util.spec_from_file_location("ts",f"{H}/tools/tumul_scan.py");TS=importlib.util.module_from_spec(ts);ts.loader.exec_module(TS)
 # dalele necesare (centru +/- KM/2, +1 km margine pt contextul scanerului)
 est,nord=_t4326.transform(CLON,CLAT);half=KM*1000/2
 e0=int((est-half)//1000);e1=int((est+half)//1000);n0=int((nord-half)//1000);n1=int((nord+half)//1000)
-nt=0
+need=[(nk,ek) for nk in range(n0,n1+1) for ek in range(e0,e1+1)];nt=0
 for nk in range(n0-1,n1+2):
     for ek in range(e0-1,e1+2):
-        if load_one(nk,ek) is not None and n0<=nk<=n1 and e0<=ek<=e1:nt+=1
-if nt==0:print("ERROR: no LiDAR tiles here - outside the 0.5 m coverage, or ANCPI is offline and this area is not in the demo mirror. The green demo area on the map always works.");sys.exit(2)
-print(f"{nt} tiles in zone ({KM}km); running v4 scanner (fingerprint detect -> fused decision)...",flush=True)
-# scanerul integrat
-ts=importlib.util.spec_from_file_location("ts",f"{H}/tools/tumul_scan.py");TS=importlib.util.module_from_spec(ts);ts.loader.exec_module(TS)
+        if TS.load_tile(nk,ek) is not None and (nk,ek) in need:nt+=1
+if nt==0:print("ERROR: no LiDAR tiles here - outside the 0.5 m coverage, or ANCPI is offline and this area is not in the demo mirror. The green area on the map (Dolj) works while ANCPI is offline.");sys.exit(2)
+print(f"{nt} of {len(need)} tiles in zone ({KM}km); running v4 scanner (fingerprint detect -> fused decision)...",flush=True)
 c1=_t3844.transform(est-half,nord-half);c2=_t3844.transform(est+half,nord+half)
 mos,xll,ytop,area=TS.scan_laki3(min(c1[0],c2[0]),max(c1[0],c2[0]),min(c1[1],c2[1]),max(c1[1],c2[1]))
 cands,S=TS.scan(mos,0.5)
@@ -90,12 +66,18 @@ med=float(np.nanmedian(mos));fill=np.where(np.isfinite(mos),mos,med)
 # vederea = DOAR zona ceruta (mozaicul are margine de context in plus), la 2 m/px
 zy0=max(0,int((ytop-(nord+half))/CS));zy1=int((ytop-(nord-half))/CS)
 zx0=max(0,int((est-half-xll)/CS));zx1=int((est+half-xll)/CS)
-zview=fill[zy0:zy1,zx0:zx1]
+zview=fill[zy0:zy1,zx0:zx1];zvalid=np.isfinite(mos[zy0:zy1,zx0:zx1])
+DATA_PCT=100.0*float(zvalid.mean()) if zvalid.size else 0.0
+import json as _json;_json.dump(dict(tiles_need=len(need),tiles_have=nt,data_pct=round(DATA_PCT,1)),open('/tmp/zone_cover.json','w'))
+if DATA_PCT<99.0:print(f"WARNING: LiDAR data covers only {DATA_PCT:.0f}% of the requested zone - the rest was NOT scanned (shown dark red)",flush=True)
 xllv=xll+zx0*CS;ytopv=ytop-zy0*CS
 fc=2
 sub=zview[:zview.shape[0]//fc*fc,:zview.shape[1]//fc*fc].reshape(zview.shape[0]//fc,fc,zview.shape[1]//fc,fc).mean((1,3))
 hv=hshade(sub,CS*fc)
-img=Image.fromarray(hv).convert('RGB');d=ImageDraw.Draw(img)
+img=Image.fromarray(hv).convert('RGB')
+_nod=~zvalid[:sub.shape[0]*fc,:sub.shape[1]*fc].reshape(sub.shape[0],fc,sub.shape[1],fc).any((1,3))
+if _nod.any():_a=np.asarray(img).copy();_a[_nod]=(90,20,20);img=Image.fromarray(_a)
+d=ImageDraw.Draw(img)
 try:FT=ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc",16)
 except:FT=ImageFont.load_default()
 def px(E,N):return (E-xllv)/(CS*fc),(ytopv-N)/(CS*fc)
@@ -133,4 +115,5 @@ if kept:
     board.save(f'{H}/review/zone_board.jpg',quality=85)
     print(f"-> review/zone_board.jpg ({n} candidates)",flush=True)
 else:
-    print("(0 candidates kept - clean area / no obvious mounds)",flush=True)
+    if DATA_PCT<99.0:print(f"(0 candidates kept in the {DATA_PCT:.0f}% of the zone that has LiDAR data - the rest was not scanned)",flush=True)
+    else:print("(0 candidates kept - clean area / no obvious mounds)",flush=True)

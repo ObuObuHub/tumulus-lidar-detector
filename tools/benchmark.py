@@ -24,7 +24,14 @@ def dl(nk,ek):
         try:return np.load(p)
         except:pass
     z=f"{CACHE}/{nk}_{ek}.zip"
-    if not os.path.exists(z):subprocess.run(["curl","-s","--max-time","120","-o",z,f"https://geoportal.ancpi.ro/laki3_mnt/zip/{nk}_{ek}.zip"],check=False)
+    if not os.path.exists(z):  # ANCPI întâi; dacă e căzut, oglinda GitHub a zonei demo (TILE_MIRROR)
+        for base in ("https://geoportal.ancpi.ro/laki3_mnt/zip",os.environ.get("TILE_MIRROR","https://github.com/ObuObuHub/tumulus-lidar-detector/releases/download/demo-tiles")):
+            subprocess.run(["curl","-sfL","--connect-timeout","8","--max-time","120","-o",z,f"{base}/{nk}_{ek}.zip"],check=False)
+            try:
+                import zipfile
+                if zipfile.is_zipfile(z):break
+            except Exception:pass
+            if os.path.exists(z):os.remove(z)
     try:import zipfile;zf=zipfile.ZipFile(z)
     except:
         if os.path.exists(z):os.remove(z)
@@ -57,15 +64,18 @@ xll0=e0*1000;ytop0=(n1+1)*1000;W=(e1-e0+1)*2000;Hh=(n1-n0+1)*2000
 _gb=W*Hh*4/2**30;_maxgb=float(os.environ.get('BENCH_MAX_GB','8'))
 if _gb>_maxgb:
     print(f"ERROR: GT bbox spans {e1-e0+1}x{n1-n0+1} km -> {_gb:.1f} GB float32 mosaic (> {_maxgb} GB cap). GT is too spatially spread for a single-mosaic benchmark; split it into compact (~10 km) clusters and benchmark each, or raise BENCH_MAX_GB if you have the RAM.");sys.exit(2)
-mos=np.full((Hh,W),np.nan,np.float32);nt=0
+mos=np.full((Hh,W),np.nan,np.float32);nt=0;miss=[]
 for nk in range(n0,n1+1):
     for ek in range(e0,e1+1):
         d=dl(nk,ek)
-        if d is None: continue
+        if d is None: miss.append(f"{nk}_{ek}"); continue
         nt+=1;ox=int((ek*1000-xll0)/CS);oy=int((ytop0-(nk+1)*1000)/CS);mos[oy:oy+2000,ox:ox+2000]=d[:2000,:2000]
 if nt==0:print("ERROR: no LAKI3 tiles over the GT bbox - area not covered (Romania only), OR the tile download failed (check network / geoportal.ancpi.ro / curl)");sys.exit(2)
 area_km2=(np.isfinite(mos).sum())*(CS*CS)/1e6
 print(f"BENCHMARK {os.path.basename(GT)} | {len(gt)} GT | {nt} tiles | ~{area_km2:.1f} km² scanned | model {os.path.basename(MODEL)}",flush=True)
+if miss:print(f"WARNING: {len(miss)} of {nt+len(miss)} tiles over the GT bbox are missing (outside coverage, or not downloadable): {' '.join(miss[:12])}{' ...' if len(miss)>12 else ''}",flush=True)
+_nod=sum(1 for e,n in gt if not (0<=int((ytop0-n)/CS)<Hh and 0<=int((e-xll0)/CS)<W and np.isfinite(mos[int((ytop0-n)/CS),int((e-xll0)/CS)])))
+if _nod:print(f"WARNING: {_nod} of {len(gt)} GT points lie on ground with no LiDAR data - they can only count as misses",flush=True)
 f=int(round(2.0/CS));hw=int(40/CS)
 class Net(nn.Module):
     def __init__(s):

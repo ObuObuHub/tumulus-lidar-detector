@@ -8,7 +8,7 @@
 # Pragurile de operare implicite se aleg cu tune_operating_point.py pe etaloanele oarbe (dezvăluit)
 # și se verifică pe setul PROASPĂT (eISM 48) — regula raportului detecții/FP a lui Andrei.
 # Usage: tumul_scan.py W_LON E_LON S_LAT N_LAT OUT_CSV   (env: SOURCE=laki3|<fisier .npy 1m>, CNN_THR)
-import os,sys,csv,math,json,importlib.util
+import os,sys,csv,math,json,importlib.util,subprocess,zipfile
 import numpy as np
 import torch,torch.nn as nn
 H=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -196,25 +196,90 @@ def scan(dem,native_cs):
                  (c['pfp']<FP_FILTER_THR and (FP6_THR<=0 or c['pfp6']<FP6_THR)))
         c['keep']=(c['fuse']>=FUSE_THR) and not c['interp'] and c['vfrac']>=VFRAC_MIN and not _dome0 and _fpok
     return out,S
+# Dalele LAKI III (1 km, 0,5 m, chei km EPSG:3844): .npy din cache; altfel .zip din cache; altfel descărcate
+# (ANCPI întâi, apoi oglinda GitHub cu zona demo cât ANCPI e căzut). LAKI3_DOWNLOAD=0 = fără rețea.
+ANCPI_URL="https://geoportal.ancpi.ro/laki3_mnt/zip"
+MIRROR_URL=os.environ.get("TILE_MIRROR","https://github.com/ObuObuHub/tumulus-lidar-detector/releases/download/demo-tiles")
+# Oglinda de dale a proiectului (release-urile unui depozit GitHub + index.json: dală -> [release, asset id]).
+# Public: fără cheie. Privat: TILE_TOKEN (cheie doar-citire). TILE_MIRROR_REPO schimbă depozitul, TILE_MIRROR_REPO=0 îl oprește.
+MIRROR_REPO=os.environ.get("TILE_MIRROR_REPO","ObuObuHub/tumulus-lidar-tiles")
+_PIDX=None
+def _curl_auth(url,out,accept):
+    cfg=f'header = "Accept: {accept}"\n'+(f'header = "Authorization: Bearer {os.environ["TILE_TOKEN"]}"\n' if os.environ.get("TILE_TOKEN") else '')
+    return subprocess.run(["curl","-sfL","--connect-timeout","8","--max-time","300","-K","-","-o",out,url],input=cfg,text=True,check=False).returncode==0
+def _mirror_asset(key):
+    """URL-ul dalei în oglindă (public sau, cu TILE_TOKEN, prin API) sau None."""
+    global _PIDX
+    if MIRROR_REPO in ("","0"):return None
+    tok=os.environ.get("TILE_TOKEN")
+    if _PIDX is None:
+        _PIDX={};CACHE=os.environ["LAKI3_CACHE"];ip=f"{CACHE}/_mirror_index.json"
+        if not os.path.exists(ip):
+            if tok:
+                rel=f"{CACHE}/_mirror_index_release.json"
+                if _curl_auth(f"https://api.github.com/repos/{MIRROR_REPO}/releases/tags/index",rel,"application/vnd.github+json"):
+                    a=[x for x in json.load(open(rel)).get("assets",[]) if x["name"]=="index.json"]
+                    if a:_curl_auth(f"https://api.github.com/repos/{MIRROR_REPO}/releases/assets/{a[0]['id']}",ip,"application/octet-stream")
+            else:_curl_auth(f"https://github.com/{MIRROR_REPO}/releases/download/index/index.json",ip,"application/octet-stream")
+        try:_PIDX=json.load(open(ip))
+        except Exception:
+            if os.path.exists(ip):os.remove(ip)
+            print(f"WARNING: tile mirror {MIRROR_REPO} not reachable; using ANCPI and the demo tiles only",flush=True)
+    v=_PIDX.get(key)
+    if not v:return None
+    return f"https://api.github.com/repos/{MIRROR_REPO}/releases/assets/{v[1]}" if tok else f"https://github.com/{MIRROR_REPO}/releases/download/{v[0]}/{key}.zip"
+def load_tile(nk,ek):
+    """Întoarce DEM-ul dalei (2000x2000, NaN = fără date) sau None dacă dala nu e nicăieri."""
+    CACHE=os.environ["LAKI3_CACHE"];p=f"{CACHE}/{nk}_{ek}.npy"
+    if os.path.exists(p):
+        try:return np.load(p)
+        except Exception as e:
+            print(f"WARNING: unreadable cached tile {p} ({e}); rebuilding it from the zip",flush=True);os.remove(p)
+    z=f"{CACHE}/{nk}_{ek}.zip"
+    if not os.path.exists(z) and os.environ.get("LAKI3_DOWNLOAD","1")!="0":
+        os.makedirs(CACHE,exist_ok=True)
+        for base in (ANCPI_URL,"private",MIRROR_URL):  # ANCPI -> oglinda proiectului -> dalele demo
+            if base=="private":
+                u=_mirror_asset(f"{nk}_{ek}")
+                if u:_curl_auth(u,z,"application/octet-stream")
+            else:subprocess.run(["curl","-sfL","--connect-timeout","8","--max-time","120","-o",z,f"{base}/{nk}_{ek}.zip"],check=False)
+            if os.path.exists(z) and zipfile.is_zipfile(z):break
+            if os.path.exists(z):os.remove(z)
+    if not os.path.exists(z):return None
+    zf=zipfile.ZipFile(z);asc=[n for n in zf.namelist() if n.lower().endswith('.asc')]
+    if not asc:raise SystemExit(f"ERROR: {z} contains no .asc grid")
+    raw=zf.read(asc[0]).decode('latin-1').replace(',','.');lines=raw.split('\n');hdr={};i=0
+    while i<len(lines):
+        pp=lines[i].split()
+        if len(pp)>=2 and pp[0].lower() in ('ncols','nrows','xllcorner','yllcorner','cellsize','nodata_value'):hdr[pp[0].lower()]=float(pp[1]);i+=1
+        else:break
+    nc=int(hdr['ncols']);nr=int(hdr['nrows']);nd=hdr.get('nodata_value',-9999)
+    d=np.fromstring(' '.join(lines[i:]),sep=' ',dtype=np.float32)[:nc*nr].reshape(nr,nc);d[d==nd]=np.nan;np.save(p,d);return d
 def scan_laki3(W_LON,E_LON,S_LAT,N_LAT):
-    CACHE=os.environ["LAKI3_CACHE"]
     cor=[_TF.transform(a,b) for a,b in [(W_LON,S_LAT),(E_LON,S_LAT),(W_LON,N_LAT),(E_LON,N_LAT)]]
     es=[e for e,n in cor];ns=[n for e,n in cor];MARG=400
     e0=int((min(es)-MARG)//1000);e1=int((max(es)+MARG)//1000);n0=int((min(ns)-MARG)//1000);n1=int((max(ns)+MARG)//1000)
     xll=e0*1000;ytop=(n1+1)*1000
-    mos=np.full(((n1-n0+1)*2000,(e1-e0+1)*2000),np.nan,np.float32);nt=0
+    mos=np.full(((n1-n0+1)*2000,(e1-e0+1)*2000),np.nan,np.float32);nt=0;miss=[]
     for nk in range(n0,n1+1):
         for ek in range(e0,e1+1):
-            p=f"{CACHE}/{nk}_{ek}.npy"
-            if not os.path.exists(p): continue
-            d=np.load(p);nt+=1
+            d=load_tile(nk,ek)
+            if d is None:miss.append(f"{nk}_{ek}");continue
+            nt+=1
             ox=int((ek*1000-xll)/0.5);oy=int((ytop-(nk+1)*1000)/0.5);mos[oy:oy+2000,ox:ox+2000]=d[:2000,:2000]
     area=float(np.isfinite(mos).sum())*0.25/1e6
     print(f"mozaic: {nt} dale, ~{area:.0f} km²",flush=True)
+    if miss:
+        print(f"WARNING: {len(miss)} of {nt+len(miss)} tiles (box + 400 m margin) are missing - outside the 0.5 m coverage,"
+              f" or not downloadable (ANCPI offline, not in the demo mirror). That ground was NOT scanned: "
+              f"{' '.join(miss[:12])}{' ...' if len(miss)>12 else ''}",flush=True)
     return mos,xll,ytop,area
 def main():
     W_LON,E_LON,S_LAT,N_LAT=map(float,sys.argv[1:5]);OUT=sys.argv[5]
     mos,xll,ytop,area=scan_laki3(W_LON,E_LON,S_LAT,N_LAT)
+    if area<=0:
+        print("ERROR: no LiDAR data for this box - outside the 0.5 m coverage (Oltenia / south-west Romania), or ANCPI is offline"
+              " and the box is not in the demo mirror. Nothing was scanned; no output written.",flush=True);sys.exit(2)
     cands,S=scan(mos,0.5)
     keep=[c for c in cands if c['keep']]
     with open(OUT,'w',newline='') as fo:

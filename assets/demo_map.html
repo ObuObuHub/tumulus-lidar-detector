@@ -14,27 +14,27 @@
 .tareabtn{display:block;padding:5px 12px;text-decoration:none;color:#111;text-align:center;font:12px sans-serif;}
 </style>
 <div id="tmap"></div>
-<div id="tinfo"><b>1.</b> Click a point — start inside the <b>green demo area</b> &middot; <b>2.</b> press <b>&#9654; Scan</b></div>
+<div id="tinfo"><b>1.</b> Click a point — start inside the <b>green area (Dolj)</b> &middot; <b>2.</b> press <b>&#9654; Scan</b></div>
 <div id="tout"></div>
 <script>
 (function(){
   var covOut = __COVOUT__;
+  var mirOut = __MIROUT__;
   function start(){
     if(typeof L === 'undefined'){ setTimeout(start, 200); return; }
     var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: '&copy; OpenStreetMap', maxZoom: 19});
     var sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {attribution: 'Esri World Imagery', maxZoom: 19});
     var map = L.map('tmap', {layers: [osm]});
     var cov = L.geoJSON(covOut, {style: {color: '#1d4ed8', weight: 1.5, fillColor: '#3b82f6', fillOpacity: 0.16}}).addTo(map);
-    // demo area (8x8 km, southern Dolj): tiles mirrored on GitHub -> works even while ANCPI is offline
-    var demoRect = L.rectangle([[44.00029, 23.46498], [44.07359, 23.56293]],
-                               {color: '#16a34a', weight: 2, fillColor: '#22c55e', fillOpacity: 0.10})
-                    .bindTooltip('Demo area — works now', {sticky: true}).addTo(map);
+    // Dolj: tiles mirrored on GitHub (the project's tile mirror) -> works even while ANCPI is offline
+    var demoRect = L.geoJSON(mirOut, {style: {color: '#16a34a', weight: 2, fillColor: '#22c55e', fillOpacity: 0.10}})
+                    .bindTooltip('Dolj — works now', {sticky: true}).addTo(map);
     map.setView([44.04, 23.51], 12);
     // Colab: the output iframe resizes AFTER init -> immediate fitBounds gives a wrong zoom
     function refit(){ map.invalidateSize(); map.fitBounds(demoRect.getBounds(), {padding: [40, 40]}); }
     refit(); setTimeout(refit, 400); setTimeout(refit, 1500);
     if (window.ResizeObserver) { new ResizeObserver(function(){ map.invalidateSize(); }).observe(document.getElementById('tmap')); }
-    L.control.layers({'Map': osm, 'Satellite': sat}, {'LiDAR 0.5 m': cov, 'Demo area': demoRect}).addTo(map);
+    L.control.layers({'Map': osm, 'Satellite': sat}, {'LiDAR 0.5 m': cov, 'Works now (Dolj)': demoRect}).addTo(map);
     L.control.scale({imperial: false}).addTo(map);
 
     var areaKm = 1;
@@ -138,8 +138,10 @@
       var zona = lat.toFixed(4) + ', ' + lon.toFixed(4) + ' &middot; ' + km + ' km';
       var nm = (d.maybe || []).length;
       var sufix = nm ? (' + ' + nm + ' <b style="color:#d97706">to verify</b>') : '';
+      var part = (d.cover && d.cover.data_pct < 99) ? d.cover.data_pct : null;   // share of the zone that has LiDAR data
+      var warn = (part !== null) ? (' &middot; <b style="color:#b91c1c">&#9888; LiDAR data for only ' + Math.round(part) + '% of the zone &mdash; the rest (dark red) was NOT scanned</b>') : '';
       if(d.n > 0){
-        setStatus('<b>' + d.n + ' probable mound(s)</b> (red)' + sufix + ' &middot; ' + zona, 'tok');
+        setStatus('<b>' + d.n + ' probable mound(s)</b> (red)' + sufix + ' &middot; ' + zona + warn, 'tok');
         d.rows.forEach(function(r){
           L.circleMarker([r.lat, r.lon], {radius: 7, color: '#b91c1c', weight: 2, fillColor: '#ef4444', fillOpacity: 0.75})
            .bindPopup('<b>#' + r.id + '</b> score ' + r.score + '<br>' + r.lat + ', ' + r.lon +
@@ -147,7 +149,7 @@
            .addTo(mounds);
         });
       } else {
-        setStatus('No mounds here — the model is selective' + sufix + ' &middot; ' + zona, 'tok');
+        setStatus((part !== null ? 'No mounds in the scanned part' : 'No mounds here — the model is selective') + sufix + ' &middot; ' + zona + warn, 'tok');
       }
       (d.maybe || []).forEach(function(r){
         L.circleMarker([r.lat, r.lon], {radius: 6, color: '#d97706', weight: 2, fillColor: '#f59e0b', fillOpacity: 0.25, dashArray: '3 3'})

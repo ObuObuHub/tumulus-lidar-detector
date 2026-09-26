@@ -6,11 +6,11 @@ Andrei Chiper-Leferman
 
 We present a detector of burial mounds (kurgans) in LiDAR for the plains of Romania, where centuries
 of ploughing have flattened many mounds and official catalogues are incomplete. The central data idea
-is **morphology transfer**: the network learns dome shape from 21,565 well-preserved Danish mounds,
-while the counter-examples come from Romanian terrain. The core is a small CNN (~23,000 parameters),
-embedded in a chain that fuses visual recognition with morphometry and with curvature filters. On the
-blind benchmark it recovers 91% of the real mounds, and the shape recognition transfers to foreign
-plain kurgans. Its role is prospection on 0.5 m LiDAR; confirmation remains field survey.
+is **morphology transfer**: the network learns dome shape from Danish mounds, while the
+counter-examples come from Romanian terrain. The core is a small CNN (~23,000 parameters), embedded in
+a chain that fuses visual recognition with morphometry and with curvature filters. It recovers 31% of
+48 unseen tumuli from the official register (50% of those with visible relief) and transfers only
+partially to foreign kurgans. Its role is prospection on 0.5 m LiDAR; confirmation remains field survey.
 
 ## 1. Problem
 
@@ -23,21 +23,21 @@ processes and convolutional networks (including on kurgans).
 ## 2. Data and cross-country transfer
 
 Visible Romanian positives are few. The solution: borrow the shape where mounds survive by the
-thousands, and take the negatives from the working terrain.
+thousands, and take the negatives from the working terrain; both are trained jointly.
 
-- **Positives:** 21,565 Danish mounds (Rundhøj, 0.4 m) plus 157 Romanian mounds (west: the Arad and
-  Timiș area; south: Oltenia), integrated to fine-tune the model to Romanian terrain.
-- **Negatives (~52,000):** mostly Romanian (plain, hills, villages, ploughland, dikes), plus mimics
-  harvested from the model's own real false positives.
+- **Positives:** Danish mounds (*Fund og Fortidsminder*, Rundhøj, 0.4 m) plus Romanian mounds (Arad,
+  Timiș, Oltenia): 1,500 + 105 for the production CNN, 21,564 + 146 for the single-channel core.
+- **Negatives:** mostly Romanian (plain, hills, villages, ploughland, dikes), plus mimics from the
+  model's own false positives: ~10,800 (production CNN), ~52,000 (core).
 
 Each source contributes both positives and negatives, so source identity cannot become a shortcut.
-The Danish-to-Romanian transfer is confirmed empirically. Declared risk: the class imbalance
-(21.5k vs 157) is the biggest danger for Romanian specificity.
+The benefit of the Danish positives is not yet demonstrated (one ablation run, within run-to-run
+noise). Declared risk: the class imbalance is the biggest danger for Romanian specificity.
 
 ## 3. Model
 
 A small CNN (~23k parameters), 128×128 px input windows covering 80 m of terrain at 2 m effective
-resolution (multidirectional hillshade):
+resolution (multidirectional hillshade; the production CNN adds SLRM, slope, roughness):
 
 ```
 Conv2d(→16,3×3,s2)→ReLU → Conv2d(→32)→ReLU → Conv2d(→64)→ReLU → AdaptiveAvgPool → Linear(64→1)
@@ -56,10 +56,10 @@ in cross-validation on the fitting set, not blind); curvature and contour filter
 
 ## 4. Detection on flattened mounds
 
-![Figure 2. Three confirmed mounds, from erased to prominent.](assets/figs/fig2_flattened_mounds.png)
+![Figure 2. Three mounds, from erased to prominent.](assets/figs/fig2_flattened_mounds.png)
 
-**Figure 2.** Three confirmed mounds (0.65 / 2.12 / 4.82 m): the diameter is conserved (~32 m) even
-when the height nearly vanishes, so the detector works on shape, not amplitude.
+**Figure 2.** Three mounds accepted on visual review (0.65 / 2.12 / 4.82 m): the diameter stays ~32 m
+while the height nearly vanishes, so the detector works on shape, not amplitude.
 
 ## 5. Discriminating mimics
 
@@ -68,31 +68,46 @@ setting. Two choices address them: the recognition + morphometry fusion (each ca
 misses), and curvature as a filter after the network (Grad-CAM showed the network confuses linear
 banks with domes; curvature was noise inside the network, but signal as a filter).
 
-Measured on 541 mimics / 635 mounds: no single signal dominates, but combined they give AUC 0.94
-(0.85 on a held-out set); the strongest are contour linearity and circularity. The inspiration came
-from the ABCD criteria of dermatoscopy. Curvature as a fifth input channel helps in other work; here
-it was noise, so we use it as a filter, not as an input.
+Measured on 541 mimics and 635 visually reviewed mound candidates: no single signal dominates, but combined they give AUC 0.94 (0.85 on a held-out set); the strongest are contour
+linearity and circularity. The inspiration came from the ABCD criteria of dermatoscopy. Curvature as a
+fifth input channel helps in other work; here it was noise, so we use it as a filter, not as an input.
 
 ![Figure 3. Grad-CAM: attention on real mounds (top) vs false positives (bottom).](assets/figs/fig3_gradcam.png)
 
 ## 6. Evaluation
 
-Blind Catane benchmark: full scan at real prevalence. We excluded 4 labels with no LiDAR signature
-(flattened or mispositioned mounds), leaving 22 real mounds. On ~57 km², same area for both:
+### 6.1 Official register (independent test)
 
-| Model | AUPRC | recall |
-|---|---|---|
-| Production chain (4 channels + fusion + filters) | **0.66** | **91%** |
-| Single-channel core | 0.68 | 82% (73% at threshold 0.7) |
+48 eISM tumuli (Dolj, Olt) in the 0.5 m coverage, none used as training positives. Detection within
+50 m:
 
-Equal AUPRC; the 4-channel chain holds recall much better (indicative comparison — different score
-substrates). At the production operating point (fused score ≥ 0.70 plus filters), 21 of the 22 real
-mounds are detected (Figure 4).
+| Subset | Recovered |
+|---|---|
+| All | **15/48 = 31%** (95% CI 20–45%) |
+| Visible relief (SLRM peak ≥ 0.3 m) | 13/26 = 50% |
+| No visible relief | 2/22 = 9% |
 
-![Figure 4. The cleaned benchmark: 22 real mounds + 4 excluded.](assets/figs/fig4_catane_benchmark.png)
+The register is incomplete (50 tumuli in Dolj), so it measures recall, not precision.
 
-**Figure 4.** The 22 real mounds at the production operating point: 21 detected (green) and one faint
-real mound missed (red). The 4 labels with no LiDAR signature are excluded from the benchmark (grey).
+### 6.2 Catane (development area)
+
+Full scan at real prevalence, ~57 km². Not a blind test: 21 of the 26 labels were found by earlier
+model versions, and the model, thresholds and filters were tuned here. Four labels without LiDAR
+signature were excluded after the run (all among the misses).
+
+| Labels | Model | AUPRC | recall @0.7 | FP @0.7 |
+|---|---|---|---|---|
+| All 26 | Production chain | 0.56 | 20/26 | 19 |
+| 22 kept | Production chain | 0.66 | 20/22 | 19 |
+| 22 kept | Single-channel core (trained on 13 of them) | 0.68 | 16/22 | 6 |
+| 22 kept | Single-channel core retrained without Catane (2 runs) | 0.16 · 0.28 | 17/22 · 5/22 | 275 · 13 |
+
+Removing Catane from training cuts the core's AUPRC from 0.68 to 0.16–0.28. At the operating point: 21/26
+labels (81%), plus 19 detections outside the labels (Figure 4).
+
+![Figure 4. Catane labels at the operating point.](assets/figs/fig4_catane_benchmark.png)
+
+**Figure 4.** Catane labels at the operating point: 21 detected (green), 1 missed (red), 4 excluded (grey).
 
 ![Figure 4b. Grad-CAM on the excluded mounds and on the missed one.](assets/figs/fig4b_excluded_gradcam.png)
 
@@ -101,20 +116,18 @@ with the reason for each cut.
 
 ## 7. Generalization to foreign mounds
 
-The production CNN on independent foreign mounds, public LiDAR (AUROC, mound vs control):
+The production CNN on foreign mounds (public LiDAR, OSM catalogues; AUROC with 95% CI, recall at 0.5):
 
 | Set | Morphology | Resolution | AUROC | recall |
 |---|---|---|---|---|
-| UK, Salisbury Plain | ditch-ring barrows | 1 m | 0.644 | 17% |
-| NL, Veluwe/Drenthe | domes under forest | 0.5 m | 0.617 | 14% |
-| **PL, kurgans** | **domes on open fields** | 1 m | **0.709** | **27%** |
+| UK, Salisbury Plain | ditch-ring barrows | 1 m | 0.644 (0.55–0.74) | 10/60 = 17% |
+| NL, Veluwe/Drenthe | domes under forest | 0.5 m | 0.617 (0.51–0.72) | 8/59 = 14% |
+| PL, kurgans | domes on open fields | 1 m | 0.709 (0.61–0.81) | 16/60 = 27% |
 
-Morphology matters: the more a foreign mound resembles a plain kurgan, the better the transfer;
-clear kurgans score like home mounds (0.89–0.99). The raw recall in the table (27%) is against the
-full OSM catalogue; about 38% of those points no longer have a LiDAR signature (ploughed-out
-kurgans), and on kurgans with a visible mound recall rises to ~48% (58% on the well-preserved ones).
-The model specializes in plain-field domes and transfers recognition to kurgans of the same type;
-other morphologies require local data.
+The full chain (with the filters) keeps only 6/55 Polish kurgans (11%), with 1/49 false alarms. Transfer is
+partial and the intervals overlap. Clear kurgans score like home mounds (0.89–0.99); where
+the relief is still visible (≥ 0.35 m), 14/32 Polish kurgans are recognized. Other morphologies require
+local data.
 
 ![Figure 5. Polish kurgans: detected (green), missed with signature (red), no signature (grey).](assets/figs/fig5_pl_kurgans.png)
 
@@ -123,6 +136,9 @@ signature (ploughed-out kurgan). CNN = recognition score; relief = the signature
 
 ## 8. Limitations
 
+- Recall on the official register: 31% (50% with visible relief) — a prospection aid, not an inventory.
+- No blind test yet: Catane is a development area.
+- Benefit of the Danish positives not yet demonstrated.
 - Very small mounds (<~15 m) are under-detected; precision collapses at ≥2–5 m resolution.
 - Near-perfect mimics remain false positives; topographic openness, spatial priors and multispectral
   data do not separate them.
@@ -133,8 +149,9 @@ signature (ploughed-out kurgan). CNN = recognition score; relief = the signature
 ## 9. Reproducibility and next steps
 
 Code in this repository. Test LiDAR: Environment Agency (UK), PDOK AHN (NL), GUGiK (PL). Next steps:
-(1) a second blind evaluator; (2) a head-to-head benchmark against the best kurgan method in the
-literature, if Hungarian LiDAR can be obtained; (3) small-mound positives and more Romanian positives.
+(1) a blind test on a new area, labelled before scanning; (2) field survey of a sample of candidates;
+(3) a second blind evaluator; (4) a head-to-head benchmark against the best kurgan method in the
+literature, if Hungarian LiDAR can be obtained; (5) small-mound positives and more Romanian positives.
 
 ## Acknowledgements
 
