@@ -32,6 +32,7 @@ CNN_THR=float(os.environ.get('CNN_THR','0.80'))  # doar pt uneltele de analiză 
 # Singura excludere dură rămasă: credibilitatea măsurătorii (teren interpolat, doar pe date >=0.9m).
 FUSE_THR=float(os.environ.get('FUSE_THR','0.70'))  # 0.70 + filtru FP = punctul de operare din 16.07.2026 (decizia Andrei); vechiul regim: FUSE_THR=0.80 FP_FILTER_THR=0
 VFRAC_MIN=float(os.environ.get('VFRAC_MIN','0.98'))  # garda de cusaturi NoData (fereastra 80m; 0=dezactivat)
+NAN100_MAX=float(os.environ.get('NAN100_MAX','0.05'))  # gap guard: a kept candidate with >5% missing LiDAR within 100 m is dropped (1 = off)
 _FZ=json.load(open(os.environ.get('FORMULA',f"{H}/assets/fuse_formula_v4.json")))
 _CHS=[(ch['features'],np.array(ch['mu']),np.array(ch['sd']),np.array(ch['w']),ch['b']) for ch in _FZ['channels']]
 def fuse_score(c):
@@ -195,6 +196,18 @@ def scan(dem,native_cs):
         _fpok = (FP_FILTER_THR<=0 or c['fuse']>=FP_PROTECT or
                  (c['pfp']<FP_FILTER_THR and (FP6_THR<=0 or c['pfp6']<FP6_THR)))
         c['keep']=(c['fuse']>=FUSE_THR) and not c['interp'] and c['vfrac']>=VFRAC_MIN and not _dome0 and _fpok
+    # Gap guard: missing data is filled with the median above, which leaves a false step at the edge of a gap.
+    # Checked only on kept candidates, on a 100 m disc of the mosaic (outside the mosaic counts as missing).
+    Rg=int(round(100/native_cs));yy,xx=np.mgrid[-Rg:Rg+1,-Rg:Rg+1];disk=(yy*yy+xx*xx)<=Rg*Rg;nd=int(disk.sum())
+    for c in out:
+        c['nan100']=None
+        if not c['keep']:continue
+        py,px=c['y2']*f,c['x2']*f;y0,y1,x0,x1=py-Rg,py+Rg+1,px-Rg,px+Rg+1
+        W=np.full((2*Rg+1,2*Rg+1),np.nan,np.float32)
+        sy0,sy1,sx0,sx1=max(0,y0),min(dem.shape[0],y1),max(0,x0),min(dem.shape[1],x1)
+        if sy1>sy0 and sx1>sx0:W[sy0-y0:sy1-y0,sx0-x0:sx1-x0]=dem[sy0:sy1,sx0:sx1]
+        c['nan100']=float(np.isnan(W[disk]).sum())/nd
+        if c['nan100']>NAN100_MAX:c['keep']=False
     return out,S
 # Dalele LAKI III (1 km, 0,5 m, chei km EPSG:3844): .npy din cache; altfel .zip din cache; altfel descărcate
 # (ANCPI întâi, apoi oglinda GitHub cu zona demo cât ANCPI e căzut). LAKI3_DOWNLOAD=0 = fără rețea.

@@ -53,6 +53,8 @@ evidence — the morphometric signature (Mahalanobis distance on shape descripto
 CNN (hillshade, SLRM, slope, roughness) — are fused noisy-OR into one score with one threshold
 (a candidate passes if it *looks like* OR *has the geometry of* a mound; the fusion has AUROC 0.92
 in cross-validation on the fitting set, not blind); curvature and contour filters then cut the mimics.
+Candidates with more than 5% missing data within 100 m are dropped: gaps are filled before scanning,
+and the edge of a filled gap looks like a step.
 
 ## 4. Detection on flattened mounds
 
