@@ -27,7 +27,7 @@ box above is in Dolj and works while ANCPI is offline. Thresholds and filters: e
 variables in `tools/tumul_scan.py`.
 
 > ⚠ ANCPI's geoportal is temporarily offline after a cyberattack. Until it returns, scanning works across
-> Dolj county, served from the project's tile mirror
+> Dolj, Gorj, Mehedinți and Caraș-Severin, served from the project's tile mirror
 > ([`tumulus-lidar-tiles`](https://github.com/ObuObuHub/tumulus-lidar-tiles); data © ANCPI, redistributed
 > unmodified, with attribution).
 

@@ -26,16 +26,16 @@
     var sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {attribution: 'Esri World Imagery', maxZoom: 19});
     var map = L.map('tmap', {layers: [osm]});
     var cov = L.geoJSON(covOut, {style: {color: '#1d4ed8', weight: 1.5, fillColor: '#3b82f6', fillOpacity: 0.16}}).addTo(map);
-    // Dolj: tiles mirrored on GitHub (the project's tile mirror) -> works even while ANCPI is offline
+    // Dolj, Gorj, Mehedinți, Caraș-Severin: tiles mirrored on GitHub (the project's tile mirror) -> works even while ANCPI is offline
     var demoRect = L.geoJSON(mirOut, {style: {color: '#16a34a', weight: 2, fillColor: '#22c55e', fillOpacity: 0.10}})
-                    .bindTooltip('Dolj — works now', {sticky: true}).addTo(map);
+                    .bindTooltip('Works now (tile mirror)', {sticky: true}).addTo(map);
     var START = L.latLng(44.0430, 23.5220);
     map.setView(START, 13);
     // Colab: the output iframe resizes AFTER init -> immediate fitBounds gives a wrong zoom
     function refit(){ map.invalidateSize(); map.fitBounds(START.toBounds(9000)); }
     refit(); setTimeout(refit, 400); setTimeout(refit, 1500);
     if (window.ResizeObserver) { new ResizeObserver(function(){ map.invalidateSize(); }).observe(document.getElementById('tmap')); }
-    L.control.layers({'Map': osm, 'Satellite': sat}, {'LiDAR 0.5 m': cov, 'Works now (Dolj)': demoRect}).addTo(map);
+    L.control.layers({'Map': osm, 'Satellite': sat}, {'LiDAR 0.5 m': cov, 'Works now': demoRect}).addTo(map);
     L.control.scale({imperial: false}).addTo(map);
     // legenda (colțul din dreapta jos)
     var leg = L.control({position: 'bottomright'});
@@ -43,7 +43,7 @@
       var d = L.DomUtil.create('div');
       d.style.cssText = 'background:#fff;padding:6px 10px;border-radius:8px;box-shadow:0 1px 5px rgba(0,0,0,.3);font:12px/1.6 sans-serif;color:#111';
       function sw(c, dash){ return '<span style="display:inline-block;width:12px;height:12px;border:2px ' + (dash ? 'dashed' : 'solid') + ' ' + c + ';border-radius:' + (dash ? '50%' : '3px') + ';margin-right:6px;vertical-align:-2px"></span>'; }
-      d.innerHTML = sw('#16a34a') + 'scan works here now (Dolj)<br>' + sw('#1d4ed8') + 'LiDAR, when ANCPI is back<br>' +
+      d.innerHTML = sw('#16a34a') + 'scan works here now<br>' + sw('#1d4ed8') + 'LiDAR, when ANCPI is back<br>' +
                     sw('#b91c1c') + 'probable mound<br>' + sw('#d97706', true) + 'worth a second look';
       return d;
     };

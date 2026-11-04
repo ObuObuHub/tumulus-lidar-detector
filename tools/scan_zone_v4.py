@@ -29,7 +29,7 @@ need=[(nk,ek) for nk in range(n0,n1+1) for ek in range(e0,e1+1)];nt=0
 for nk in range(n0-1,n1+2):
     for ek in range(e0-1,e1+2):
         if TS.load_tile(nk,ek) is not None and (nk,ek) in need:nt+=1
-if nt==0:print("ERROR: no LiDAR tiles here - outside the 0.5 m coverage, or ANCPI is offline and this area is not in the demo mirror. The green area on the map (Dolj) works while ANCPI is offline.");sys.exit(2)
+if nt==0:print("ERROR: no LiDAR tiles here - outside the 0.5 m coverage, or ANCPI is offline and this area is not in the demo mirror. The green area on the map (Dolj, Gorj, Mehedinți, Caraș-Severin) works while ANCPI is offline.");sys.exit(2)
 print(f"{nt} of {len(need)} tiles in zone ({KM}km); running v4 scanner (fingerprint detect -> fused decision)...",flush=True)
 c1=_t3844.transform(est-half,nord-half);c2=_t3844.transform(est+half,nord+half)
 mos,xll,ytop,area=TS.scan_laki3(min(c1[0],c2[0]),max(c1[0],c2[0]),min(c1[1],c2[1]),max(c1[1],c2[1]))
