@@ -29,10 +29,10 @@
   function start(){
     if(typeof L === 'undefined'){ setTimeout(start, 200); return; }
     // Colab shows this page in a sandboxed frame without a referrer: openstreetmap.org refuses such tile requests
-    // ("Access blocked"), so the street map comes from CARTO (same OpenStreetMap data). Marker icons: absolute path.
+    // ("Access blocked") and CARTO now asks for a key, so the map comes from Esri, like the satellite view.
     L.Icon.Default.imagePath = 'https://unpkg.com/leaflet@1.9.4/dist/images/';
-    var osm = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-                          {attribution: '&copy; OpenStreetMap contributors &copy; CARTO', subdomains: 'abcd', maxZoom: 19});
+    var osm = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
+                          {attribution: 'Tiles &copy; Esri &middot; Esri, HERE, Garmin, OpenStreetMap contributors and others', maxZoom: 19});
     var sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {attribution: 'Esri World Imagery', maxZoom: 19});
     var map = L.map('tmap', {layers: [osm]});
     var cov = L.geoJSON(covOut, {style: {color: '#1d4ed8', weight: 1.5, fillColor: '#3b82f6', fillOpacity: 0.16}}).addTo(map);
