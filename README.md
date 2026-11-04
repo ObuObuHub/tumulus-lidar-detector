@@ -9,8 +9,8 @@ of ~20–40 m diameter. Built for prospection — confirmation remains field sur
 **[STUDY.md](STUDY.md)** — method, evaluation, cross-country transfer, limitations.
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ObuObuHub/tumulus-lidar-detector/blob/main/demo.ipynb)
-**Run it in your browser, no install**: Runtime → Run all, pick a point on the map (0.5 m coverage:
-Oltenia / south-west Romania) and scan.
+**Run it in your browser, no install**: press ▶, pick a place on the map (0.5 m coverage: Oltenia /
+south-west Romania) and scan. Or choose *Test yourself*: mark the mounds you see, then compare with the model.
 
 ![The detection chain](assets/figs/fig1_pipeline.png)
 
