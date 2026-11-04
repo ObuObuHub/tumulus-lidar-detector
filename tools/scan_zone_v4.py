@@ -3,8 +3,11 @@
 # amprenta -> formula noisy-OR "ochi SAU forma" + garda de cusaturi NoData). Inlocuieste scan_zone.py
 # in demo-ul Colab (10.07.2026, decizia din README). Acelasi contract de iesiri ca scan_zone.py:
 #   /tmp/zone_dets.csv        (lon,lat,score,cnn,mahal,keep; score = scorul fuzionat v4)
-#   review/zone_view.jpg      (hillshade + marcaje: VERDE = candidat pastrat, portocaliu = de verificat
-#                              — scor >=0.60 dar sub prag sau taiat de filtre; pragurile vin din tumul_scan)
+#   review/zone_view.jpg      (hillshade + marcaje: ROSU = candidat pastrat, portocaliu = de verificat
+#                              — scor >=0.60 dar sub prag sau taiat de filtre; pragurile vin din tumul_scan;
+#                              albastru inchis = fara date LiDAR)
+#   review/zone_relief.jpg    (acelasi hillshade, FARA marcaje — pt. modul de test orb din demo)
+#   /tmp/zone_px.json         (pozitia candidatilor in pixelii imaginii + colturile imaginii in lat/lon)
 #   review/zone_board.jpg     (crop-uri hillshade+SLRM ale candidatilor pastrati, numerotate)
 #   detected_mounds.csv       (lista pastratilor, pt. descarcare)
 # Usage: scan_zone_v4.py LON LAT [KM]
@@ -16,7 +19,7 @@ CLON=float(sys.argv[1]);CLAT=float(sys.argv[2]);KM=float(sys.argv[3]) if len(sys
 CACHE=os.environ.get("LAKI3_CACHE","/tmp/laki3");CS=0.5;TPX=2000
 os.makedirs(CACHE,exist_ok=True);os.makedirs(f'{H}/review',exist_ok=True)
 os.environ["LAKI3_CACHE"]=CACHE
-[os.remove(_p) for _p in ('/tmp/zone_dets.csv','/tmp/zone_cover.json',f'{H}/review/zone_view.jpg',f'{H}/review/zone_board.jpg',f'{H}/detected_mounds.csv') if os.path.exists(_p)]
+[os.remove(_p) for _p in ('/tmp/zone_dets.csv','/tmp/zone_cover.json','/tmp/zone_px.json',f'{H}/review/zone_view.jpg',f'{H}/review/zone_relief.jpg',f'{H}/review/zone_board.jpg',f'{H}/detected_mounds.csv') if os.path.exists(_p)]
 import pyproj
 _t4326=pyproj.Transformer.from_crs("EPSG:4326","EPSG:3844",always_xy=True)
 _t3844=pyproj.Transformer.from_crs("EPSG:3844","EPSG:4326",always_xy=True)
@@ -67,26 +70,44 @@ zx0=max(0,int((est-half-xll)/CS));zx1=int((est+half-xll)/CS)
 zview=fill[zy0:zy1,zx0:zx1];zvalid=np.isfinite(mos[zy0:zy1,zx0:zx1])
 DATA_PCT=100.0*float(zvalid.mean()) if zvalid.size else 0.0
 import json as _json;_json.dump(dict(tiles_need=len(need),tiles_have=nt,data_pct=round(DATA_PCT,1)),open('/tmp/zone_cover.json','w'))
-if DATA_PCT<99.0:print(f"WARNING: LiDAR data covers only {DATA_PCT:.0f}% of the requested zone - the rest was NOT scanned (shown dark red)",flush=True)
+if DATA_PCT<99.0:print(f"WARNING: LiDAR data covers only {DATA_PCT:.0f}% of the requested zone - the rest was NOT scanned (shown dark blue)",flush=True)
 xllv=xll+zx0*CS;ytopv=ytop-zy0*CS
 fc=2
 sub=zview[:zview.shape[0]//fc*fc,:zview.shape[1]//fc*fc].reshape(zview.shape[0]//fc,fc,zview.shape[1]//fc,fc).mean((1,3))
 hv=hshade(sub,CS*fc)
 img=Image.fromarray(hv).convert('RGB')
 _nod=~zvalid[:sub.shape[0]*fc,:sub.shape[1]*fc].reshape(sub.shape[0],fc,sub.shape[1],fc).any((1,3))
-if _nod.any():_a=np.asarray(img).copy();_a[_nod]=(90,20,20);img=Image.fromarray(_a)
+if _nod.any():_a=np.asarray(img).copy();_a[_nod]=(25,45,85);img=Image.fromarray(_a)
+img.save(f'{H}/review/zone_relief.jpg',quality=85)   # fara marcaje: modul de test orb
+def _font(sz):
+    for f in ("/System/Library/Fonts/Helvetica.ttc","/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+              "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"):
+        try:return ImageFont.truetype(f,sz)
+        except OSError:pass
+    try:return ImageFont.load_default(size=sz)
+    except TypeError:return ImageFont.load_default()
+FT=_font(16)
 d=ImageDraw.Draw(img)
-try:FT=ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc",16)
-except:FT=ImageFont.load_default()
-def px(E,N):return (E-xllv)/(CS*fc),(ytopv-N)/(CS*fc)
+MPP=CS*fc
+def px(E,N):return (E-xllv)/MPP,(ytopv-N)/MPP
 for r in rows:
     x,y=px(r['E'],r['N'])
-    col=(40,220,60) if r['keep'] else (255,150,30)
+    col=(220,38,38) if r['keep'] else (255,150,30)
     rr=14 if r['keep'] else 9
     d.ellipse([x-rr,y-rr,x+rr,y+rr],outline=col,width=4 if r['keep'] else 3)
 for i,r in enumerate(kept,1):
-    x,y=px(r['E'],r['N']);d.text((x+16,y-10),str(i),fill=(40,220,60),font=FT)
+    x,y=px(r['E'],r['N']);d.text((x+16,y-10),str(i),fill=(220,38,38),font=FT,stroke_width=2,stroke_fill=(255,255,255))
 img.save(f'{H}/review/zone_view.jpg',quality=85)
+# pozitiile in pixeli + colturile imaginii (lat/lon) — demo-ul compara aici marcajele omului cu ale modelului
+W_,H_=img.size
+def _ll(xp,yp):
+    lo,la=_t3844.transform(xllv+xp*MPP,ytopv-yp*MPP);return [round(la,7),round(lo,7)]
+_kid={id(r):i for i,r in enumerate(kept,1)}
+_json.dump(dict(w=W_,h=H_,m_per_px=MPP,
+                corners=dict(tl=_ll(0,0),tr=_ll(W_,0),bl=_ll(0,H_),br=_ll(W_,H_)),
+                rows=[dict(id=_kid.get(id(r)),x=round(px(r['E'],r['N'])[0],1),y=round(px(r['E'],r['N'])[1],1),
+                           keep=r['keep'],score=round(r['fuse'],3),lat=round(r['lat'],6),lon=round(r['lon'],6)) for r in rows]),
+           open('/tmp/zone_px.json','w'))
 print(f"-> review/zone_view.jpg {img.size}",flush=True)
 # ── zone_board.jpg: perechi hillshade+SLRM pt pastrati
 if kept:

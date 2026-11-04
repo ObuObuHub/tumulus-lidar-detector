@@ -12,9 +12,15 @@
 #tout th{border-bottom:2px solid #9ca3af;padding:5px 12px;text-align:left;color:#374151;}
 #tout td{border-bottom:1px solid #e5e7eb;padding:5px 12px;}
 .tareabtn{display:block;padding:5px 12px;text-decoration:none;color:#111;text-align:center;font:12px sans-serif;}
+.tmodebtn{display:block;padding:6px 12px;text-decoration:none;color:#111;text-align:center;font:12px sans-serif;}
+#tout .tbtn{padding:7px 14px;border:0;border-radius:6px;font:bold 13px sans-serif;cursor:pointer;margin-right:6px;}
+#tout .tbtn[disabled]{opacity:.45;cursor:not-allowed;}
+#tout .tmk{position:absolute;transform:translate(-50%,-50%);border-radius:50%;box-sizing:border-box;pointer-events:none;}
+#tout .tmk span{position:absolute;left:100%;top:-6px;margin-left:3px;font:bold 12px sans-serif;text-shadow:0 0 3px #fff,0 0 3px #fff;}
+#tout pre{white-space:pre-wrap;font:11px/1.4 monospace;background:#fff;border:1px solid #fecaca;border-radius:6px;padding:8px;max-height:220px;overflow:auto;color:#7f1d1d;}
 </style>
 <div id="tmap"></div>
-<div id="tinfo"><b>1.</b> Pick a place: search a village (top right) or click inside the <b>green area</b> &middot; <b>2.</b> press <b>&#9654; Scan</b></div>
+<div id="tinfo">Pick a place: search a village (top right) or click inside the <b>green area</b>, then press <b>&#9654; Scan</b></div>
 <div id="tout"></div>
 <script>
 (function(){
@@ -43,8 +49,9 @@
       var d = L.DomUtil.create('div');
       d.style.cssText = 'background:#fff;padding:6px 10px;border-radius:8px;box-shadow:0 1px 5px rgba(0,0,0,.3);font:12px/1.6 sans-serif;color:#111';
       function sw(c, dash){ return '<span style="display:inline-block;width:12px;height:12px;border:2px ' + (dash ? 'dashed' : 'solid') + ' ' + c + ';border-radius:' + (dash ? '50%' : '3px') + ';margin-right:6px;vertical-align:-2px"></span>'; }
-      d.innerHTML = sw('#16a34a') + 'scan works here now<br>' + sw('#1d4ed8') + 'LiDAR, when ANCPI is back<br>' +
-                    sw('#b91c1c') + 'probable mound<br>' + sw('#d97706', true) + 'worth a second look';
+      d.innerHTML = sw('#16a34a') + 'scan works here now<br>' + sw('#1d4ed8') + '0.5 m LiDAR coverage<br>' +
+                    sw('#b91c1c') + 'probable mound<br>' + sw('#d97706', true) + 'worth a second look<br>' +
+                    '<span id="tlegyou" style="display:none">' + sw('#2563eb') + 'your marks (test)</span>';
       return d;
     };
     leg.addTo(map);
@@ -73,7 +80,38 @@
     document.getElementById('tgo').onclick = goPlace;
     document.getElementById('tq').addEventListener('keydown', function(ev){ if(ev.key === 'Enter') goPlace(); });
 
-    var areaKm = 1;
+    var mode = 'find';   // 'find' = the model's answer straight away · 'test' = you mark first, then compare
+    var modeBtns = {};
+    var modeCtl = L.control({position: 'topleft'});
+    modeCtl.onAdd = function(){
+      var d = L.DomUtil.create('div');
+      d.style.cssText = 'background:#fff;border-radius:8px;box-shadow:0 1px 5px rgba(0,0,0,.3);overflow:hidden';
+      [['find', 'Find mounds'], ['test', 'Test yourself']].forEach(function(m){
+        var b = document.createElement('a');
+        b.textContent = m[1]; b.href = '#'; b.className = 'tmodebtn';
+        b.onclick = function(ev){ ev.preventDefault(); setMode(m[0]); };
+        modeBtns[m[0]] = b; d.appendChild(b);
+      });
+      L.DomEvent.disableClickPropagation(d);
+      return d;
+    };
+    modeCtl.addTo(map);
+    function setMode(m){
+      mode = m;
+      Object.keys(modeBtns).forEach(function(k){
+        modeBtns[k].style.background = (k === m) ? '#1d4ed8' : '';
+        modeBtns[k].style.color = (k === m) ? '#fff' : '#111';
+      });
+      document.getElementById('tlegyou').style.display = (m === 'test') ? '' : 'none';
+      if(m === 'test') setArea(1);
+      if(sel) pick(sel);
+    }
+
+    var areaKm = 1, areaBtns = {};
+    function setArea(k){
+      areaKm = k;
+      Object.keys(areaBtns).forEach(function(x){ areaBtns[x].style.background = (+x === k) ? '#dbeafe' : ''; });
+    }
     var areaCtl = L.control({position: 'topleft'});
     areaCtl.onAdd = function(){
       var d = L.DomUtil.create('div');
@@ -85,12 +123,14 @@
         if(k === areaKm) b.style.background = '#dbeafe';
         b.onclick = function(ev){
           ev.preventDefault();
-          areaKm = k;
-          Array.prototype.forEach.call(d.querySelectorAll('a'), function(x){ x.style.background = ''; });
-          b.style.background = '#dbeafe';
+          if(mode === 'test' && k !== 1){
+            setStatus('The test uses a 1 km square, so the mounds are large enough to see on the relief.', '');
+            return;
+          }
+          setArea(k);
           if(sel) pick(sel);   // redesenează pătratul la noua mărime
         };
-        d.appendChild(b);
+        areaBtns[k] = b; d.appendChild(b);
       });
       L.DomEvent.disableClickPropagation(d);
       return d;
@@ -142,73 +182,181 @@
     cov.on('mouseover', function(){ map.getContainer().style.cursor = 'crosshair'; });
     cov.on('mouseout', function(){ map.getContainer().style.cursor = ''; });
 
+    var you = L.layerGroup().addTo(map);
+    function satLink(lat, lon, text){
+      return '<a target="_blank" href="https://www.google.com/maps?q=' + lat + ',' + lon + '&t=k">' + (text || 'see it on satellite') + '</a>';
+    }
     async function scan(lat, lon){
-      var my = ++seq, km = areaKm;
+      var my = ++seq, km = areaKm, test = (mode === 'test');
       if(selMark){ map.removeLayer(selMark); selMark = null; }
       if(selBox){ map.removeLayer(selBox); selBox = null; }
       if(marker) map.removeLayer(marker);
       if(box) map.removeLayer(box);
-      mounds.clearLayers(); maybes.clearLayers(); out.innerHTML = '';
+      mounds.clearLayers(); maybes.clearLayers(); you.clearLayers(); out.innerHTML = '';
       marker = L.marker([lat, lon]).addTo(map);
       var half = km * 500;
       var dLat = half / 111320, dLon = half / (111320 * Math.cos(lat * Math.PI / 180));
       box = L.rectangle([[lat - dLat, lon - dLon], [lat + dLat, lon + dLon]],
                         {color: '#f59e0b', weight: 1.5, dashArray: '4 4', fillOpacity: 0.05}).addTo(map);
-      var mins = {1: '~1 min', 2: '~2-3 min', 3: '~4-6 min'}[km] || ('~' + km * 2 + ' min');
+      var mins = {1: 'about 1 minute', 2: '2-3 minutes', 3: '4-6 minutes'}[km] || ('about ' + km * 2 + ' minutes');
       var q = inflight > 0 ? ' &middot; queued after the current scan' : '';
-      setStatus('<span class="tspin"></span>Scanning ' + km + ' km at ' + lat.toFixed(4) + ', ' + lon.toFixed(4) +
-                ' (' + mins + ')' + q, 'trun');
+      setStatus('<span class="tspin"></span>Scanning the ' + km + ' km square (' + mins + ')…' + q, 'trun');
       inflight++;
       var d = null, err = null;
       try {
-        var res = await google.colab.kernel.invokeFunction('notebook.scan', [lat, lon, km], {});
+        var res = await google.colab.kernel.invokeFunction('notebook.scan', [lat, lon, km, test], {});
         d = res.data['application/json'];
       } catch(e){ err = e; }
       inflight--;
       if(my !== seq) return;   // a newer scan was requested meanwhile: drop this stale response
       if(err){
-        setStatus('Error: ' + err + '<br>Session expired? Runtime &rarr; Run all.', 'terr');
+        setStatus('The notebook did not answer: ' + err + '<br>If the session was disconnected: Runtime &rarr; Run all, then scan again.', 'terr');
         return;
       }
-      if(!d.ok){ setStatus(d.msg, 'terr'); return; }
+      if(!d || !d.ok){
+        setStatus(d ? d.msg : 'The notebook returned no answer.', 'terr');
+        if(d && d.detail) out.innerHTML = '<pre>' + d.detail + '</pre>';
+        return;
+      }
       if(d.bbox && box){ box.setBounds([[d.bbox[0], d.bbox[1]], [d.bbox[2], d.bbox[3]]]); }
+      map.fitBounds(box.getBounds(), {padding: [30, 30], maxZoom: 15});
       var zona = lat.toFixed(4) + ', ' + lon.toFixed(4) + ' &middot; ' + km + ' km';
-      var nm = (d.maybe || []).length;
-      var sufix = nm ? (' + ' + nm + ' <b style="color:#d97706">to verify</b>') : '';
       var part = (d.cover && d.cover.data_pct < 99) ? d.cover.data_pct : null;   // share of the zone that has LiDAR data
-      var warn = (part !== null) ? (' &middot; <b style="color:#b91c1c">&#9888; LiDAR data for only ' + Math.round(part) + '% of the zone &mdash; the rest (dark red) was NOT scanned</b>') : '';
+      var warn = (part !== null) ? (' &middot; <b style="color:#b91c1c">&#9888; LiDAR data for only ' + Math.round(part) + '% of the square; the rest (dark blue) was not scanned</b>') : '';
+      if(d.test){ renderTest(d, zona, warn); return; }
+      showModel(d);
+      var nm = (d.maybe || []).length;
+      var sufix = nm ? (' + ' + nm + ' <b style="color:#d97706">worth a second look</b>') : '';
       if(d.n > 0){
         setStatus('<b>' + d.n + ' probable mound' + (d.n > 1 ? 's' : '') + '</b> in this square (red)' + sufix + ' &middot; ' + zona + warn, 'tok');
-        d.rows.forEach(function(r){
-          L.circleMarker([r.lat, r.lon], {radius: 7, color: '#b91c1c', weight: 2, fillColor: '#ef4444', fillOpacity: 0.75})
-           .bindPopup('<b>#' + r.id + '</b> score ' + r.score + '<br>' + r.lat + ', ' + r.lon +
-                      '<br><a target="_blank" href="https://www.google.com/maps?q=' + r.lat + ',' + r.lon + '&t=k">see it on satellite</a>')
-           .addTo(mounds);
-        });
       } else {
         setStatus((part !== null ? 'No mounds in the scanned part' : 'No mounds found in this square') + sufix + ' &middot; ' + zona + warn, 'tok');
       }
-      (d.maybe || []).forEach(function(r){
-        L.circleMarker([r.lat, r.lon], {radius: 6, color: '#d97706', weight: 2, fillColor: '#f59e0b', fillOpacity: 0.25, dashArray: '3 3'})
-         .bindPopup('<b>To verify</b> (score ' + r.score + ' — below threshold or cut by filters)<br>' +
-                    r.lat + ', ' + r.lon + '<br><a target="_blank" href="https://www.google.com/maps?q=' + r.lat + ',' + r.lon + '&t=k">see it on satellite</a>')
-         .addTo(maybes);
-      });
-      map.fitBounds(box.getBounds(), {padding: [30, 30], maxZoom: 15});
-      var html = '<div style="font:13px sans-serif;color:#374151;margin:2px 0 6px">Scanned zone: <b>' + zona + '</b></div>';
+      var html = '<div style="font:13px sans-serif;color:#374151;margin:2px 0 6px">Scanned square: <b>' + zona + '</b></div>';
       html += '<img style="max-width:100%;border-radius:8px;box-shadow:0 1px 6px rgba(0,0,0,.2)" src="data:image/jpeg;base64,' + d.img + '"/>';
-      html += '<div style="font:12px sans-serif;color:#4b5563;margin:4px 0 8px">Relief of the square. Green circles = probable mounds (numbers as in the list) · orange = worth a second look · dark red = no LiDAR data.</div>';
+      html += '<div style="font:12px sans-serif;color:#4b5563;margin:4px 0 8px">Relief of the square. Red circles = probable mounds (numbers as in the list) · orange = worth a second look · dark blue = no LiDAR data.</div>';
       if(d.rows.length){
         html += '<table><tr><th>#</th><th>score (0–1)</th><th>location</th></tr>';
         d.rows.forEach(function(r){
-          html += '<tr><td>' + r.id + '</td><td><b>' + r.score + '</b></td><td><a target="_blank" href="https://www.google.com/maps?q=' +
-                  r.lat + ',' + r.lon + '&t=k">' + r.lat + ', ' + r.lon + ' — see it on satellite</a></td></tr>';
+          html += '<tr><td>' + r.id + '</td><td><b>' + r.score + '</b></td><td>' + satLink(r.lat, r.lon, r.lat + ', ' + r.lon + ' — see it on satellite') + '</td></tr>';
         });
         html += '</table>';
         if(d.csv){ html += '<div style="margin-top:8px"><a download="mounds.csv" href="data:text/csv;base64,' + d.csv + '" style="font:13px sans-serif">⬇ Download the list (CSV)</a></div>'; }
       }
       html += '<div style="font:12px sans-serif;color:#6b7280;margin-top:10px">Shape is not proof: only a field visit confirms a mound. Please do not dig; report finds to the county heritage office.</div>';
       out.innerHTML = html;
+    }
+    function showModel(d){
+      d.rows.forEach(function(r){
+        L.circleMarker([r.lat, r.lon], {radius: 7, color: '#b91c1c', weight: 2, fillColor: '#ef4444', fillOpacity: 0.75})
+         .bindPopup('<b>#' + r.id + '</b> score ' + r.score + '<br>' + r.lat + ', ' + r.lon + '<br>' + satLink(r.lat, r.lon))
+         .addTo(mounds);
+      });
+      (d.maybe || []).forEach(function(r){
+        L.circleMarker([r.lat, r.lon], {radius: 6, color: '#d97706', weight: 2, fillColor: '#f59e0b', fillOpacity: 0.25, dashArray: '3 3'})
+         .bindPopup('<b>Worth a second look</b> (score ' + r.score + ': below the threshold or cut by a filter)<br>' +
+                    r.lat + ', ' + r.lon + '<br>' + satLink(r.lat, r.lon))
+         .addTo(maybes);
+      });
+    }
+
+    // ── Test yourself: mark what you see on the relief, then compare with the model ──
+    var MATCH_M = 25;   // your mark and the model's count as the same place within 25 m
+    function renderTest(d, zona, warn){
+      var P = d.px, W = P.w, H = P.h, C = P.corners, mpp = P.m_per_px;
+      var marks = [], revealed = false;
+      function toLL(x, y){   // image pixel -> lat/lon (bilinear on the four corners; < 1 m error over 3 km)
+        var u = x / W, v = y / H;
+        function bl(i){ return (1-u)*(1-v)*C.tl[i] + u*(1-v)*C.tr[i] + (1-u)*v*C.bl[i] + u*v*C.br[i]; }
+        return [+bl(0).toFixed(6), +bl(1).toFixed(6)];
+      }
+      setStatus('<b>Your turn:</b> click every mound you can see on the relief below, then press <b>Show the model’s answer</b> &middot; ' + zona + warn, 'trun');
+      out.innerHTML =
+        '<div style="font:13px sans-serif;color:#374151;margin:2px 0 6px">Click on a mound to mark it; click a mark again to remove it. Marking nothing is a valid answer.</div>' +
+        '<div id="tbox" style="position:relative;display:inline-block;max-width:100%;cursor:crosshair;line-height:0">' +
+        '<img id="timg" draggable="false" style="max-width:100%;border-radius:8px;box-shadow:0 1px 6px rgba(0,0,0,.2)" src="data:image/jpeg;base64,' + d.img + '"/>' +
+        '<div id="tlay" style="position:absolute;left:0;top:0;right:0;bottom:0;pointer-events:none"></div></div>' +
+        '<div style="margin:8px 0;font:13px sans-serif"><button class="tbtn" id="treveal" style="background:#16a34a;color:#fff">Show the model’s answer</button>' +
+        '<button class="tbtn" id="tclear" style="background:#e5e7eb;color:#111">Clear my marks</button> <span id="tcount">You marked 0 places.</span></div>' +
+        '<div id="tres"></div>';
+      var img = document.getElementById('timg'), lay = document.getElementById('tlay');
+      function dot(x, y, size, css, label, color){
+        return '<div class="tmk" style="left:' + (100 * x / W) + '%;top:' + (100 * y / H) + '%;width:' + size + 'px;height:' + size + 'px;' + css + '">' +
+               (label ? '<span style="color:' + color + '">' + label + '</span>' : '') + '</div>';
+      }
+      function draw(res){
+        var h = '';
+        if(revealed){
+          P.rows.forEach(function(r){
+            if(r.keep) h += dot(r.x, r.y, 30, 'border:3px solid #dc2626', r.id ? String(r.id) : '', '#b91c1c');
+            else h += dot(r.x, r.y, 22, 'border:2px dashed #f59e0b', '', '');
+          });
+        }
+        marks.forEach(function(m, i){
+          var ok = !!res && (i in res.youHit);
+          h += dot(m.x, m.y, 18, 'border:3px solid ' + (ok ? '#16a34a' : '#2563eb') + ';background:rgba(37,99,235,.15)', 'Y' + (i + 1), ok ? '#15803d' : '#1d4ed8');
+        });
+        lay.innerHTML = h;
+        document.getElementById('tcount').textContent = 'You marked ' + marks.length + ' place' + (marks.length === 1 ? '' : 's') + '.';
+      }
+      img.addEventListener('click', function(ev){
+        if(revealed) return;
+        var rect = img.getBoundingClientRect();
+        var x = (ev.clientX - rect.left) * W / rect.width, y = (ev.clientY - rect.top) * H / rect.height;
+        var tol = 14 * W / rect.width;   // 14 screen pixels
+        for(var i = 0; i < marks.length; i++){
+          if(Math.hypot(marks[i].x - x, marks[i].y - y) <= tol){ marks.splice(i, 1); draw(); return; }
+        }
+        marks.push({x: x, y: y}); draw();
+      });
+      document.getElementById('tclear').onclick = function(){ if(!revealed){ marks = []; draw(); } };
+      document.getElementById('treveal').onclick = function(){
+        if(revealed) return;
+        revealed = true;
+        document.getElementById('treveal').disabled = true; document.getElementById('tclear').disabled = true;
+        img.style.cursor = 'default';
+        var R = MATCH_M / mpp, model = P.rows.filter(function(r){ return r.keep; }), maybe = P.rows.filter(function(r){ return !r.keep; });
+        var pairs = [];
+        marks.forEach(function(m, i){ model.forEach(function(r, j){
+          var dd = Math.hypot(m.x - r.x, m.y - r.y); if(dd <= R) pairs.push([dd, i, j]);
+        }); });
+        pairs.sort(function(a, b){ return a[0] - b[0]; });
+        var youHit = {}, modelHit = {};
+        pairs.forEach(function(p){ if(!(p[1] in youHit) && !(p[2] in modelHit)){ youHit[p[1]] = p[2]; modelHit[p[2]] = p[1]; } });
+        var both = Object.keys(youHit).length, onlyYou = marks.length - both, onlyModel = model.length - both;
+        draw({youHit: youHit});
+        showModel(d);
+        var rowsCsv = [['who', 'id', 'lat', 'lon', 'model_score', 'matched_with']];
+        var t = '<table><tr><th>mark</th><th>who found it</th><th>model score</th><th>location</th></tr>';
+        marks.forEach(function(m, i){
+          var ll = toLL(m.x, m.y), j = youHit[i], near = '';
+          if(j === undefined){
+            maybe.forEach(function(r){ if(!near && Math.hypot(m.x - r.x, m.y - r.y) <= R) near = r.score; });
+          }
+          var who = (j !== undefined) ? '<b style="color:#15803d">both</b> (model #' + model[j].id + ')' :
+                    (near !== '' ? 'only you (the model put it under “worth a second look”)' : 'only you');
+          t += '<tr><td style="color:#1d4ed8"><b>Y' + (i + 1) + '</b></td><td>' + who + '</td><td>' + (j !== undefined ? model[j].score : near) + '</td><td>' + satLink(ll[0], ll[1], ll[0] + ', ' + ll[1]) + '</td></tr>';
+          rowsCsv.push([j !== undefined ? 'both' : 'you', 'Y' + (i + 1), ll[0], ll[1], j !== undefined ? model[j].score : near, j !== undefined ? '#' + model[j].id : '']);
+          L.circleMarker(ll, {radius: 6, color: '#2563eb', weight: 2, fillColor: '#3b82f6', fillOpacity: 0.5}).bindPopup('Your mark Y' + (i + 1)).addTo(you);
+        });
+        model.forEach(function(r, j){
+          if(j in modelHit) return;
+          t += '<tr><td style="color:#b91c1c"><b>#' + r.id + '</b></td><td>only the model</td><td>' + r.score + '</td><td>' + satLink(r.lat, r.lon, r.lat + ', ' + r.lon) + '</td></tr>';
+          rowsCsv.push(['model', '#' + r.id, r.lat, r.lon, r.score, '']);
+        });
+        t += '</table>';
+        var csv = rowsCsv.map(function(r){ return r.join(','); }).join('\n') + '\n';
+        var head = (marks.length === 0 && model.length === 0) ? '<b>You and the model agree: no mounds in this square.</b>' :
+          '<b style="color:#15803d">Both found: ' + both + '</b> &middot; <b style="color:#1d4ed8">only you: ' + onlyYou + '</b> &middot; <b style="color:#b91c1c">only the model: ' + onlyModel + '</b>';
+        document.getElementById('tres').innerHTML =
+          '<div style="font:14px sans-serif;margin:6px 0">' + head + '</div>' +
+          '<div style="font:12px sans-serif;color:#4b5563;margin-bottom:6px">On the relief: red = the model’s probable mounds (numbered), orange dashed = worth a second look, your marks in green when the model found the same place (within ' + MATCH_M + ' m), blue when it did not.</div>' +
+          ((marks.length || model.length) ? t : '') +
+          '<div style="margin-top:8px"><a download="test_you_vs_model.csv" href="data:text/csv;charset=utf-8,' + encodeURIComponent(csv) + '" style="font:13px sans-serif">⬇ Download the comparison (CSV)</a></div>' +
+          '<div style="font:12px sans-serif;color:#6b7280;margin-top:10px">Neither answer is the truth: shape is not proof, only a field visit confirms a mound. Please do not dig; report finds to the county heritage office. Scan another square to test again.</div>';
+        setStatus('Both found: ' + both + ' &middot; only you: ' + onlyYou + ' &middot; only the model: ' + onlyModel + ' &middot; ' + zona + warn, 'tok');
+      };
+      draw();
     }
     function pick(ll, name){
       sel = ll;
@@ -221,12 +369,15 @@
                            {color: '#16a34a', weight: 1.5, dashArray: '4 4', fillOpacity: 0.04}).addTo(map);
       armBtn(true);
       setStatus('Picked: <b>' + (name ? name + ' · ' : '') + sel.lat.toFixed(4) + ', ' + sel.lng.toFixed(4) +
-                '</b> · ' + areaKm + ' km square → press <b>&#9654; Scan</b>', '');
+                '</b> · ' + areaKm + ' km square → press <b>&#9654; Scan</b>' +
+                (mode === 'test' ? ' · <b>test:</b> you mark the mounds first, then see the model’s answer' : ''), '');
     }
     map.on('click', function(e){ pick(e.latlng); });
     // punctul demo e deja ales: după „Run all” ajunge un click pe Scan
+    setMode('find');
     pick(START);
-    setStatus('A demo point is already picked · press <b>&#9654; Scan</b> — or search a village / click the map first', '');
+    setStatus('A demo point is already picked: press <b>&#9654; Scan</b>. Or search a village, or click inside the green area. ' +
+              'To test yourself against the model, choose <b>Test yourself</b> (top left) first.', '');
   }
   start();
 })();
