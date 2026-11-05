@@ -89,7 +89,9 @@ fifth input channel helps in other work; here it was noise, so we use it as a fi
 | Visible relief (SLRM peak ≥ 0.3 m) | 13/26 = 50% |
 | No visible relief | 2/22 = 9% |
 
-The register is incomplete (50 tumuli in Dolj), so it measures recall, not precision.
+On visual review, none of the 13 missed mounds with visible relief shows a recognisable dome: the
+automatic 0.3 m criterion overcounts, and the register states no positional precision. The register is
+incomplete (50 tumuli in Dolj), so it measures recall, not precision.
 
 ### 6.2 Catane (development area)
 
